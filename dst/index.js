@@ -87,7 +87,7 @@ function getData() {
                         var objI = 0;
                         for (var _i = 0, _a = Object.keys(item[key]); _i < _a.length; _i++) {
                             var objKey = _a[_i];
-                            var metaValue = (typeof item[key][objKey] === "string") ? clStr(item[key][objKey]) : item[key][objKey];
+                            var metaValue = (typeof item[key][objKey][0] === "string") ? clStr(item[key][objKey][0]) : item[key][objKey][0];
                             metaValueString.push("('" + item.id + "','" + key + "','" + metaValue + "','" + objKey + "'," + objI + ")");
                             objI++;
                         }
@@ -102,7 +102,6 @@ function getData() {
                 _loop_1(key);
             }
         });
-        process.stdout.write(metaValueString.join(","));
         client.query("INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES " + metaValueString.join(","))
             .then(function () {
             process.stdout.write("INSERT META GOOD");

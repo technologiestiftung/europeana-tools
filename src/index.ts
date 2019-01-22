@@ -93,7 +93,7 @@ function getData() {
           } else if ((typeof item[key]) === "object") {
             let objI = 0;
             for (const objKey of Object.keys(item[key])) {
-              const metaValue = (typeof item[key][objKey] === "string") ? clStr(item[key][objKey]) : item[key][objKey];
+              const metaValue = (typeof item[key][objKey][0] === "string") ? clStr(item[key][objKey][0]) : item[key][objKey][0];
               metaValueString.push(`('${item.id}','${key}','${metaValue}','${objKey}',${objI})`);
               objI++;
             }
@@ -104,8 +104,6 @@ function getData() {
         }
       }
     });
-
-    process.stdout.write(metaValueString.join(","));
 
     client.query(`INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES ${metaValueString.join(",")}`)
       .then( () => {
