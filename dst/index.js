@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = require("fs");
 var pg_1 = require("pg");
+var pgFormat = require("pg-format");
 var request = require("request");
 var config = JSON.parse(fs_1.readFileSync("../config.json", "utf8"));
 var params = JSON.parse(fs_1.readFileSync("../scrape_params.json", "utf8"));
@@ -16,9 +17,6 @@ function buildUrl(fncConfig, fncParams, cursor) {
         "&rows=2" +
         "&profile=rich" +
         ("&cursor=" + cursor);
-}
-function clStr(str) {
-    return str.split("'").join("\'");
 }
 function getData() {
     request(buildUrl(config, params), function (err, res, body) {
@@ -57,7 +55,7 @@ function getData() {
                     return d[c[0]];
                 }
                 else {
-                    return "'" + d[c[0]].split("'").join("\'") + "'";
+                    return pgFormat("%L", d[c[0]]);
                 }
             }).join(",") + ")";
         }).join(",");
@@ -79,22 +77,19 @@ function getData() {
                 if (metaNotInclude.indexOf(key) === -1) {
                     if (Array.isArray(item[key])) {
                         item[key].forEach(function (a, ai) {
-                            var metaValue = (typeof a === "string") ? clStr(a) : a;
-                            metaValueString.push("('" + item.id + "','" + key + "','" + metaValue + "',''," + ai + ")");
+                            metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
                         });
                     }
                     else if ((typeof item[key]) === "object") {
                         var objI = 0;
                         for (var _i = 0, _a = Object.keys(item[key]); _i < _a.length; _i++) {
                             var objKey = _a[_i];
-                            var metaValue = (typeof item[key][objKey][0] === "string") ? clStr(item[key][objKey][0]) : item[key][objKey][0];
-                            metaValueString.push("('" + item.id + "','" + key + "','" + metaValue + "','" + objKey + "'," + objI + ")");
+                            metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
                             objI++;
                         }
                     }
                     else {
-                        var metaValue = (typeof item[key] === "string") ? clStr(item[key]) : item[key];
-                        metaValueString.push("('" + item.id + "','" + key + "','" + metaValue + "','',0)");
+                        metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
                     }
                 }
             };

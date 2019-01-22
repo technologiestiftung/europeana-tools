@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { Client } from "pg";
+import * as pgFormat from "pg-format";
 import * as request from "request";
 import { StringDecoder } from "string_decoder";
 
@@ -17,10 +18,6 @@ function buildUrl(fncConfig: {api: {public_key: string}}, fncParams: {MEDIA: str
         `&rows=2` +
         `&profile=rich` +
         `&cursor=${cursor}`;
-}
-
-function clStr( str: string): string {
-  return str.split("'").join("\'");
 }
 
 function getData() {
@@ -61,7 +58,7 @@ function getData() {
         } else if (["i", "b", "f"].indexOf(c[1]) >= 0) {
           return d[c[0]];
         } else {
-          return "'" + d[c[0]].split("'").join("\'") + "'";
+          return pgFormat("%L", d[c[0]]);
         }
       }).join(",") + ")";
     }).join(",");
@@ -87,19 +84,16 @@ function getData() {
         if (metaNotInclude.indexOf(key) === -1) {
           if ( Array.isArray(item[key]) ) {
             item[key].forEach( (a, ai) => {
-              const metaValue = (typeof a === "string") ? clStr(a) : a;
-              metaValueString.push(`('${item.id}','${key}','${metaValue}','',${ai})`);
+              metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
             });
           } else if ((typeof item[key]) === "object") {
             let objI = 0;
             for (const objKey of Object.keys(item[key])) {
-              const metaValue = (typeof item[key][objKey][0] === "string") ? clStr(item[key][objKey][0]) : item[key][objKey][0];
-              metaValueString.push(`('${item.id}','${key}','${metaValue}','${objKey}',${objI})`);
+              metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
               objI++;
             }
           } else {
-            const metaValue = (typeof item[key] === "string") ? clStr(item[key]) : item[key];
-            metaValueString.push(`('${item.id}','${key}','${metaValue}','',0)`);
+            metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
           }
         }
       }
