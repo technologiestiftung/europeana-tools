@@ -1,0 +1,22 @@
+{
+	"DATA_PROVIDER":[
+		"Botanic Garden and Botanical Museum Berlin-Dahlem",
+		"Architekturmuseum der Technischen Universität Berlin in der Universitätsbibliothek",
+		"German Archaeological Institute",
+		"Ethnologisches Museum, Staatliche Museen zu Berlin",
+		"Humboldt-Universität zu Berlin",
+		"Museum für Naturkunde Berlin",
+		"Staatsbibliothek zu Berlin - Preußischer Kulturbesitz / Digitaler Portraitindex",
+		"Münzkabinett, Staatliche Museen zu Berlin",
+		"Stiftung Preussische Schlösser und Gärten Berlin-Brandenburg",
+		"Museum fuer Naturkunde Berlin, Tierstimmenarchiv",
+		"Berlinische Galerie - Museum für Moderne Kunst",
+		"Kunstbibliothek, Staatliche Museen zu Berlin",
+		"Kupferstichkabinett, Staatliche Museen zu Berlin",
+		"Werkbundarchiv - Museum der Dinge",
+		"Staatsbibliothek zu Berlin - Preußischer Kulturbesitz",
+		"Museum für Vor- und Frühgeschichte, Staatliche Museen zu Berlin"
+	],
+	"TYPE":["IMAGE"],
+	"MEDIA":"TRUE"
+}
