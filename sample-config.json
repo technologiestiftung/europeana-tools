@@ -2,5 +2,12 @@
 	"api":	{
 		"public_key": "XXXXXXXXX",
 		"private_key": "XXXXXXXXX"
+	},
+	"db":{
+		"host":"localhost",
+		"user":"USERNAME",
+		"password":"PASSWORD",
+		"port":"5432",
+		"database":"DATABASE"
 	}
 }
