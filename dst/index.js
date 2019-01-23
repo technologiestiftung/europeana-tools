@@ -8,18 +8,29 @@ var config = JSON.parse(fs_1.readFileSync("../config.json", "utf8"));
 var params = JSON.parse(fs_1.readFileSync("../scrape_params.json", "utf8"));
 var client = new pg_1.Client(config.db);
 client.connect();
+// Check if tables exists, create if not...
+// Temporary table for cursor storage and retrieval
+client.query("CREATE TABLE IF NOT EXISTS temp ( id SERIAL PRIMARY KEY, key text, value text )");
+client.query("CREATE UNIQUE INDEX IF NOT EXISTS temp_pkey ON temp(id int4_ops)");
+// Table for storing identifiers and basics for each record
+client.query("CREATE TABLE IF NOT EXISTS records (id SERIAL PRIMARY KEY,guid text,europeana_id text,link text,preview_no_distribute boolean,score double precision,timestamp bigint,timestamp_created timestamp without time zone,timestamp_created_epoch bigint,timestamp_update timestamp without time zone,timestamp_update_epoch bigint,type text,added_to_db timestamp without time zone DEFAULT CURRENT_TIMESTAMP,europeana_completeness integer)");
+client.query("CREATE UNIQUE INDEX IF NOT EXISTS records_pkey ON records(id int4_ops)");
+// Table for storing additional metadata for each record
+client.query("CREATE TABLE IF NOT EXISTS metadata (id SERIAL PRIMARY KEY,europeana_id text NOT NULL,key text,param text,value text,sort integer)");
+client.query("CREATE UNIQUE INDEX IF NOT EXISTS metadata_pkey ON metadata(id int4_ops)");
+// If the --flush argument is provided empty all tables before giving it a fresh start
+if (process.argv.indexOf("--flush") > 1) {
+    client.query("TRUNCATE temp RESTART IDENTITY CASCADE");
+    client.query("TRUNCATE records RESTART IDENTITY CASCADE");
+    client.query("TRUNCATE metadata RESTART IDENTITY CASCADE");
+}
 function buildUrl(fncConfig, fncParams, cursor) {
     if (cursor === void 0) { cursor = "*"; }
-    return "https://www.europeana.eu/api/v2/search.json" +
-        ("?media=" + fncParams.MEDIA) +
-        "&query=*" +
-        ("&wskey=" + fncConfig.api.public_key) +
-        "&rows=2" +
-        "&profile=rich" +
-        ("&cursor=" + cursor);
+    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=100&profile=rich&cursor=" + cursor;
 }
-function getData() {
-    request(buildUrl(config, params), function (err, res, body) {
+function getData(cursor) {
+    if (cursor === void 0) { cursor = "*"; }
+    request(buildUrl(config, params, cursor), function (err, res, body) {
         if (err) {
             throw err;
         }
@@ -106,5 +117,10 @@ function getData() {
         });
     });
 }
-getData();
+// If the recover argument is passed, the script tries to recover the last stored cursor and start from there
+if (process.argv.indexOf("--recover") > 1) {
+}
+else {
+    getData();
+}
 //# sourceMappingURL=index.js.map
