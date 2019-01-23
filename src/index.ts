@@ -13,7 +13,12 @@ client.connect();
 // Check if tables exists, create if not...
 
 // Temporary table for cursor storage and retrieval
-client.query("CREATE TABLE IF NOT EXISTS temp ( id SERIAL PRIMARY KEY, key text, value text )");
+client.query("CREATE TABLE IF NOT EXISTS temp ( \
+id SERIAL PRIMARY KEY,\
+key text,\
+value text,\
+created timestamp without time zone DEFAULT CURRENT_TIMESTAMP )");
+
 client.query("CREATE UNIQUE INDEX IF NOT EXISTS temp_pkey ON temp(id int4_ops)");
 
 // Table for storing identifiers and basics for each record
@@ -56,12 +61,12 @@ if (process.argv.indexOf("--flush") > 1) {
   client.query(`TRUNCATE metadata RESTART IDENTITY CASCADE`);
 }
 
-function buildUrl(fncConfig: {api: {public_key: string}}, fncParams: {MEDIA: string}, cursor: string = "*"): string {
+function buildUrl(fncConfig: {api: {public_key: string}}, fncParams: {MEDIA: string, per_page: number}, cursor: string = "*"): string {
     return `https://www.europeana.eu/api/v2/search.json\
 ?media=${fncParams.MEDIA}\
 &query=*\
 &wskey=${fncConfig.api.public_key}\
-&rows=100\
+&rows=${fncParams.per_page}\
 &profile=rich\
 &cursor=${cursor}`;
 }
@@ -112,42 +117,59 @@ function getData(cursor: string = "*") {
     client.query(`INSERT INTO records(${columnString}) VALUES ${valueString}`)
       .then( () => {
           process.stdout.write("INSERT GOOD");
-      })
-      .catch((error) => {
-          throw error;
-      });
 
-    /*
-     * # MetaData Table
-     * Additional metadata is stored as key value pairs
-     */
+          /*
+           * # MetaData Table
+           * Additional metadata is stored as key value pairs
+           */
 
-    const metaValueString = [];
-    const metaNotInclude = columns.map( (d) => d[0]);
+          const metaValueString = [];
+          const metaNotInclude = columns.map( (d) => d[0]);
 
-    data.items.forEach( (item) => {
-      for (const key in item) {
-        if (metaNotInclude.indexOf(key) === -1) {
-          if ( Array.isArray(item[key]) ) {
-            item[key].forEach( (a, ai) => {
-              metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
-            });
-          } else if ((typeof item[key]) === "object") {
-            let objI = 0;
-            for (const objKey of Object.keys(item[key])) {
-              metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
-              objI++;
+          data.items.forEach( (item) => {
+            for (const key in item) {
+              if (metaNotInclude.indexOf(key) === -1) {
+                if ( Array.isArray(item[key]) ) {
+                  item[key].forEach( (a, ai) => {
+                    metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
+                  });
+                } else if ((typeof item[key]) === "object") {
+                  let objI = 0;
+                  for (const objKey of Object.keys(item[key])) {
+                    metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
+                    objI++;
+                  }
+                } else {
+                  metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
+                }
+              }
             }
-          } else {
-            metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
-          }
-        }
-      }
-    });
+          });
 
-    client.query(`INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES ${metaValueString.join(",")}`)
-      .then( () => {
-          process.stdout.write("INSERT META GOOD");
+          client.query(`INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES ${metaValueString.join(",")}`)
+            .then( () => {
+                process.stdout.write("INSERT META GOOD");
+
+                // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
+                client.query(`INSERT INTO temp(value,key) VALUES ('${data.nextCursor}','cursor')`)
+                  .then( () => {
+                    process.stdout.write("INSERT CURSOR GOOD");
+
+                    // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
+                    if (data.itemsCount === params.per_page) {
+                      // Go to the next cursor
+                      getData(data.nextCursor);
+                    } else {
+                      process.exit();
+                    }
+                  })
+                  .catch((error) => {
+                      throw error;
+                  });
+            })
+            .catch((error) => {
+                throw error;
+            });
       })
       .catch((error) => {
           throw error;
@@ -158,7 +180,11 @@ function getData(cursor: string = "*") {
 
 // If the recover argument is passed, the script tries to recover the last stored cursor and start from there
 if (process.argv.indexOf("--recover") > 1) {
-
-}else{
+  client.query(`SELECT value FROM temp WHERE key = 'cursor' ORDER BY id DESC LIMIT 1`)
+    .then((res) => {
+      getData(res.rows[0].value);
+    })
+    .catch((e) => process.stderr.write(e.stack));
+} else {
   getData();
 }

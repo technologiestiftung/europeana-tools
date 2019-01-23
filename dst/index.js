@@ -10,7 +10,11 @@ var client = new pg_1.Client(config.db);
 client.connect();
 // Check if tables exists, create if not...
 // Temporary table for cursor storage and retrieval
-client.query("CREATE TABLE IF NOT EXISTS temp ( id SERIAL PRIMARY KEY, key text, value text )");
+client.query("CREATE TABLE IF NOT EXISTS temp ( \
+id SERIAL PRIMARY KEY,\
+key text,\
+value text,\
+created timestamp without time zone DEFAULT CURRENT_TIMESTAMP )");
 client.query("CREATE UNIQUE INDEX IF NOT EXISTS temp_pkey ON temp(id int4_ops)");
 // Table for storing identifiers and basics for each record
 client.query("CREATE TABLE IF NOT EXISTS records (id SERIAL PRIMARY KEY,guid text,europeana_id text,link text,preview_no_distribute boolean,score double precision,timestamp bigint,timestamp_created timestamp without time zone,timestamp_created_epoch bigint,timestamp_update timestamp without time zone,timestamp_update_epoch bigint,type text,added_to_db timestamp without time zone DEFAULT CURRENT_TIMESTAMP,europeana_completeness integer)");
@@ -26,7 +30,7 @@ if (process.argv.indexOf("--flush") > 1) {
 }
 function buildUrl(fncConfig, fncParams, cursor) {
     if (cursor === void 0) { cursor = "*"; }
-    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=100&profile=rich&cursor=" + cursor;
+    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=" + fncParams.per_page + "&profile=rich&cursor=" + cursor;
 }
 function getData(cursor) {
     if (cursor === void 0) { cursor = "*"; }
@@ -73,44 +77,60 @@ function getData(cursor) {
         client.query("INSERT INTO records(" + columnString + ") VALUES " + valueString)
             .then(function () {
             process.stdout.write("INSERT GOOD");
-        })
-            .catch(function (error) {
-            throw error;
-        });
-        /*
-         * # MetaData Table
-         * Additional metadata is stored as key value pairs
-         */
-        var metaValueString = [];
-        var metaNotInclude = columns.map(function (d) { return d[0]; });
-        data.items.forEach(function (item) {
-            var _loop_1 = function (key) {
-                if (metaNotInclude.indexOf(key) === -1) {
-                    if (Array.isArray(item[key])) {
-                        item[key].forEach(function (a, ai) {
-                            metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
-                        });
-                    }
-                    else if ((typeof item[key]) === "object") {
-                        var objI = 0;
-                        for (var _i = 0, _a = Object.keys(item[key]); _i < _a.length; _i++) {
-                            var objKey = _a[_i];
-                            metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
-                            objI++;
+            /*
+             * # MetaData Table
+             * Additional metadata is stored as key value pairs
+             */
+            var metaValueString = [];
+            var metaNotInclude = columns.map(function (d) { return d[0]; });
+            data.items.forEach(function (item) {
+                var _loop_1 = function (key) {
+                    if (metaNotInclude.indexOf(key) === -1) {
+                        if (Array.isArray(item[key])) {
+                            item[key].forEach(function (a, ai) {
+                                metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
+                            });
+                        }
+                        else if ((typeof item[key]) === "object") {
+                            var objI = 0;
+                            for (var _i = 0, _a = Object.keys(item[key]); _i < _a.length; _i++) {
+                                var objKey = _a[_i];
+                                metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
+                                objI++;
+                            }
+                        }
+                        else {
+                            metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
                         }
                     }
-                    else {
-                        metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
-                    }
+                };
+                for (var key in item) {
+                    _loop_1(key);
                 }
-            };
-            for (var key in item) {
-                _loop_1(key);
-            }
-        });
-        client.query("INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES " + metaValueString.join(","))
-            .then(function () {
-            process.stdout.write("INSERT META GOOD");
+            });
+            client.query("INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES " + metaValueString.join(","))
+                .then(function () {
+                process.stdout.write("INSERT META GOOD");
+                // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
+                client.query("INSERT INTO temp(value,key) VALUES ('" + data.nextCursor + "','cursor')")
+                    .then(function () {
+                    process.stdout.write("INSERT CURSOR GOOD");
+                    // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
+                    if (data.itemsCount === params.per_page) {
+                        // Go to the next cursor
+                        getData(data.nextCursor);
+                    }
+                    else {
+                        process.exit();
+                    }
+                })
+                    .catch(function (error) {
+                    throw error;
+                });
+            })
+                .catch(function (error) {
+                throw error;
+            });
         })
             .catch(function (error) {
             throw error;
@@ -119,6 +139,11 @@ function getData(cursor) {
 }
 // If the recover argument is passed, the script tries to recover the last stored cursor and start from there
 if (process.argv.indexOf("--recover") > 1) {
+    client.query("SELECT value FROM temp WHERE key = 'cursor' ORDER BY id DESC LIMIT 1")
+        .then(function (res) {
+        getData(res.rows[0].value);
+    })
+        .catch(function (e) { return process.stderr.write(e.stack); });
 }
 else {
     getData();
