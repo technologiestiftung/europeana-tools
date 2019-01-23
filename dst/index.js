@@ -31,9 +31,10 @@ if (process.argv.indexOf("--flush") > 1) {
 }
 function buildUrl(fncConfig, fncParams, cursor) {
     if (cursor === void 0) { cursor = "*"; }
-    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=" + fncParams.per_page + "&profile=rich&cursor=" + encodeURIComponent(cursor);
+    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&type=" + fncParams.TYPE[0] + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=" + fncParams.per_page + "&qf=DATA_PROVIDER:" + encodeURIComponent("\"" + fncParams.DATA_PROVIDER[providerCount] + "\"") + "&profile=rich&cursor=" + encodeURIComponent(cursor);
 }
 var loopCount = 0;
+var providerCount = 0;
 function getData(cursor) {
     if (cursor === void 0) { cursor = "*"; }
     request(buildUrl(config, params, cursor), function (err, res, body) {
@@ -42,7 +43,7 @@ function getData(cursor) {
         }
         var data = JSON.parse(body);
         readLine.cursorTo(process.stdout, 0);
-        process.stdout.write("Current Loop: " + loopCount + " \u2014 Total results: " + data.totalResults);
+        process.stdout.write("Provider: " + providerCount + " of " + params.DATA_PROVIDER.length + " | Current Loop: " + loopCount + " | Total: " + data.totalResults);
         /*
          * # Records Table
          * Inserting basic information about each object, ids etc.
@@ -114,7 +115,7 @@ function getData(cursor) {
             client.query("INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES " + metaValueString.join(","))
                 .then(function () {
                 // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
-                client.query("INSERT INTO temp(value,key) VALUES ('" + data.nextCursor + "','cursor')")
+                client.query("INSERT INTO temp(value,key) VALUES ('" + data.nextCursor + "','cursor'), ('" + providerCount + "','provider')")
                     .then(function () {
                     // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
                     if (data.itemsCount === params.per_page) {
@@ -123,7 +124,14 @@ function getData(cursor) {
                         getData(data.nextCursor);
                     }
                     else {
-                        process.exit();
+                        if (providerCount + 1 < params.DATA_PROVIDER.length) {
+                            providerCount++;
+                            loopCount = 0;
+                            getData();
+                        }
+                        else {
+                            process.exit();
+                        }
                     }
                 })
                     .catch(function (error) {
@@ -141,9 +149,10 @@ function getData(cursor) {
 }
 // If the recover argument is passed, the script tries to recover the last stored cursor and start from there
 if (process.argv.indexOf("--recover") > 1) {
-    client.query("SELECT value FROM temp WHERE key = 'cursor' ORDER BY id DESC LIMIT 1")
+    client.query("SELECT (SELECT value FROM temp WHERE key = 'cursor' ORDER BY id DESC LIMIT 1) AS cursor, (SELECT value FROM temp WHERE key = 'provider' ORDER BY id DESC LIMIT 1) AS provider")
         .then(function (res) {
-        getData(res.rows[0].value);
+        providerCount = parseInt(res.rows[0].provider, 10);
+        getData(res.rows[0].cursor);
     })
         .catch(function (e) { return process.stderr.write(e.stack); });
 }
