@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = require("fs");
 var pg_1 = require("pg");
 var pgFormat = require("pg-format");
+var readLine = require("readline");
 var request = require("request");
 var config = JSON.parse(fs_1.readFileSync("../config.json", "utf8"));
 var params = JSON.parse(fs_1.readFileSync("../scrape_params.json", "utf8"));
@@ -30,8 +31,9 @@ if (process.argv.indexOf("--flush") > 1) {
 }
 function buildUrl(fncConfig, fncParams, cursor) {
     if (cursor === void 0) { cursor = "*"; }
-    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=" + fncParams.per_page + "&profile=rich&cursor=" + cursor;
+    return "https://www.europeana.eu/api/v2/search.json?media=" + fncParams.MEDIA + "&query=*&wskey=" + fncConfig.api.public_key + "&rows=" + fncParams.per_page + "&profile=rich&cursor=" + encodeURIComponent(cursor);
 }
+var loopCount = 0;
 function getData(cursor) {
     if (cursor === void 0) { cursor = "*"; }
     request(buildUrl(config, params, cursor), function (err, res, body) {
@@ -39,6 +41,8 @@ function getData(cursor) {
             throw err;
         }
         var data = JSON.parse(body);
+        readLine.cursorTo(process.stdout, 0);
+        process.stdout.write("Current Loop: " + loopCount + " \u2014 Total results: " + data.totalResults);
         /*
          * # Records Table
          * Inserting basic information about each object, ids etc.
@@ -76,7 +80,6 @@ function getData(cursor) {
         }).join(",");
         client.query("INSERT INTO records(" + columnString + ") VALUES " + valueString)
             .then(function () {
-            process.stdout.write("INSERT GOOD");
             /*
              * # MetaData Table
              * Additional metadata is stored as key value pairs
@@ -110,13 +113,12 @@ function getData(cursor) {
             });
             client.query("INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES " + metaValueString.join(","))
                 .then(function () {
-                process.stdout.write("INSERT META GOOD");
                 // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
                 client.query("INSERT INTO temp(value,key) VALUES ('" + data.nextCursor + "','cursor')")
                     .then(function () {
-                    process.stdout.write("INSERT CURSOR GOOD");
                     // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
                     if (data.itemsCount === params.per_page) {
+                        loopCount++;
                         // Go to the next cursor
                         getData(data.nextCursor);
                     }

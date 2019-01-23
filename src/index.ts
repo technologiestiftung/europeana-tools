@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import { Client } from "pg";
 import * as pgFormat from "pg-format";
+import * as readLine from "readline";
 import * as request from "request";
 import { StringDecoder } from "string_decoder";
 
@@ -68,14 +69,19 @@ function buildUrl(fncConfig: {api: {public_key: string}}, fncParams: {MEDIA: str
 &wskey=${fncConfig.api.public_key}\
 &rows=${fncParams.per_page}\
 &profile=rich\
-&cursor=${cursor}`;
+&cursor=${encodeURIComponent(cursor)}`;
 }
+
+let loopCount = 0;
 
 function getData(cursor: string = "*") {
   request(buildUrl(config, params, cursor), (err: string, res: object, body: string) => {
     if (err) { throw err; }
 
     const data = JSON.parse(body);
+
+    readLine.cursorTo(process.stdout, 0);
+    process.stdout.write(`Current Loop: ${loopCount} — Total results: ${data.totalResults}`);
 
     /*
      * # Records Table
@@ -116,8 +122,6 @@ function getData(cursor: string = "*") {
 
     client.query(`INSERT INTO records(${columnString}) VALUES ${valueString}`)
       .then( () => {
-          process.stdout.write("INSERT GOOD");
-
           /*
            * # MetaData Table
            * Additional metadata is stored as key value pairs
@@ -148,15 +152,12 @@ function getData(cursor: string = "*") {
 
           client.query(`INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES ${metaValueString.join(",")}`)
             .then( () => {
-                process.stdout.write("INSERT META GOOD");
-
                 // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
                 client.query(`INSERT INTO temp(value,key) VALUES ('${data.nextCursor}','cursor')`)
                   .then( () => {
-                    process.stdout.write("INSERT CURSOR GOOD");
-
                     // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
                     if (data.itemsCount === params.per_page) {
+                      loopCount++;
                       // Go to the next cursor
                       getData(data.nextCursor);
                     } else {
