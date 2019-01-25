@@ -79,7 +79,24 @@ function buildUrl(fncConfig: {api: {public_key: string}},
 let loopCount = 0;
 let providerCount = 0;
 
+function nextData(nextCursor: string = "*") {
+  if (nextCursor !== "*") {
+    loopCount++;
+    // Go to the next cursor
+    getData(nextCursor);
+  } else {
+    if (providerCount + 1 < params.DATA_PROVIDER.length) {
+      providerCount++;
+      loopCount = 0;
+      getData();
+    } else {
+      process.exit();
+    }
+  }
+}
+
 function getData(cursor: string = "*") {
+
   request(buildUrl(config, params, cursor), (err: string, res: object, body: string) => {
     if (err) { throw err; }
 
@@ -90,104 +107,101 @@ function getData(cursor: string = "*") {
 Current Loop: ${loopCount} | \
 Total: ${data.totalResults}`);
 
-    /*
-     * # Records Table
-     * Inserting basic information about each object, ids etc.
-     */
+    if (data.items.length === 0) {
+      nextData(("nextCursor" in data) ? data.nextCursor : "*");
+    } else {
 
-    // attribute name in data JSON, data type, if column name different from attribute in database
-    const columns = [
-      ["id", "s", "europeana_id"],
-      ["guid", "s"],
-      ["link", "s"],
-      ["previewNoDistribute", "b", "preview_no_distribute"],
-      ["europeanaCompleteness", "i", "europeana_completeness"],
-      ["score", "f"],
-      ["timestamp", "i"],
-      ["timestamp_created", "t"],
-      ["timestamp_created_epoch", "i"],
-      ["timestamp_update", "t"],
-      ["timestamp_update_epoch", "i"],
-      ["type", "s"],
-    ];
+      /*
+      * # Records Table
+      * Inserting basic information about each object, ids etc.
+      */
 
-    const columnString = columns.map( (d) => {
-      return (d.length === 3) ? d[2] : d[0];
-    }).join(",");
+      // attribute name in data JSON, data type, if column name different from attribute in database
+      const columns = [
+        ["id", "s", "europeana_id"],
+        ["guid", "s"],
+        ["link", "s"],
+        ["previewNoDistribute", "b", "preview_no_distribute"],
+        ["europeanaCompleteness", "i", "europeana_completeness"],
+        ["score", "f"],
+        ["timestamp", "i"],
+        ["timestamp_created", "t"],
+        ["timestamp_created_epoch", "i"],
+        ["timestamp_update", "t"],
+        ["timestamp_update_epoch", "i"],
+        ["type", "s"],
+      ];
 
-    const valueString = data.items.map( (d) => {
-      return "(" + columns.map( (c) => {
-        if (d[c[0]] === undefined || !(c[0] in d)) {
-          return "''";
-        } else if (["i", "b", "f"].indexOf(c[1]) >= 0) {
-          return d[c[0]];
-        } else {
-          return pgFormat("%L", d[c[0]]);
-        }
-      }).join(",") + ")";
-    }).join(",");
+      const columnString = columns.map( (d) => {
+        return (d.length === 3) ? d[2] : d[0];
+      }).join(",");
 
-    client.query(`INSERT INTO records(${columnString}) VALUES ${valueString}`)
-      .then( () => {
-          /*
-           * # MetaData Table
-           * Additional metadata is stored as key value pairs
-           */
+      const valueString = data.items.map( (d) => {
+        return "(" + columns.map( (c) => {
+          if (d[c[0]] === undefined || !(c[0] in d)) {
+            if (["i", "b", "f"].indexOf(c[1]) >= 0) {
+              return "0";
+            } else {
+              return "''";
+            }
+          } else if (["i", "b", "f"].indexOf(c[1]) >= 0) {
+            return d[c[0]];
+          } else {
+            return pgFormat("%L", d[c[0]]);
+          }
+        }).join(",") + ")";
+      }).join(",");
 
-          const metaValueString = [];
-          const metaNotInclude = columns.map( (d) => d[0]);
+      client.query(`INSERT INTO records(${columnString}) VALUES ${valueString}`)
+        .then( () => {
+            /*
+            * # MetaData Table
+            * Additional metadata is stored as key value pairs
+            */
 
-          data.items.forEach( (item) => {
-            for (const key in item) {
-              if (metaNotInclude.indexOf(key) === -1) {
-                if ( Array.isArray(item[key]) ) {
-                  item[key].forEach( (a, ai) => {
-                    metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
-                  });
-                } else if ((typeof item[key]) === "object") {
-                  let objI = 0;
-                  for (const objKey of Object.keys(item[key])) {
-                    metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
-                    objI++;
+            const metaValueString = [];
+            const metaNotInclude = columns.map( (d) => d[0]);
+
+            data.items.forEach( (item) => {
+              for (const key in item) {
+                if (metaNotInclude.indexOf(key) === -1) {
+                  if ( Array.isArray(item[key]) ) {
+                    item[key].forEach( (a, ai) => {
+                      metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, a, ai));
+                    });
+                  } else if ((typeof item[key]) === "object") {
+                    let objI = 0;
+                    for (const objKey of Object.keys(item[key])) {
+                      metaValueString.push(pgFormat("(%L, %L, %L, %L, %s)", item.id, key, item[key][objKey][0], objKey, objI));
+                      objI++;
+                    }
+                  } else {
+                    metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
                   }
-                } else {
-                  metaValueString.push(pgFormat("(%L, %L, %L, '', %s)", item.id, key, item[key], 0));
                 }
               }
-            }
-          });
-
-          client.query(`INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES ${metaValueString.join(",")}`)
-            .then( () => {
-                // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
-                client.query(`INSERT INTO temp(value,key) VALUES ('${data.nextCursor}','cursor'), ('${providerCount}','provider')`)
-                  .then( () => {
-                    // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
-                    if (data.itemsCount === params.per_page) {
-                      loopCount++;
-                      // Go to the next cursor
-                      getData(data.nextCursor);
-                    } else {
-                      if (providerCount + 1 < params.DATA_PROVIDER.length) {
-                        providerCount++;
-                        loopCount = 0;
-                        getData();
-                      } else {
-                        process.exit();
-                      }
-                    }
-                  })
-                  .catch((error) => {
-                      throw error;
-                  });
-            })
-            .catch((error) => {
-                throw error;
             });
-      })
-      .catch((error) => {
-          throw error;
-      });
+
+            client.query(`INSERT INTO metadata(europeana_id, key, value, param, sort) VALUES ${metaValueString.join(",")}`)
+              .then( () => {
+                  // Looks like we successfully inserted everything into the tables, let's store the next cursor for backup purposes
+                  client.query(`INSERT INTO temp(value,key) VALUES ('${data.nextCursor}','cursor'), ('${providerCount}','provider')`)
+                    .then( () => {
+                      // I could calculate the position of the cursor, but if the list size equals max list size, its likely there is more
+                      nextData(("nextCursor" in data) ? data.nextCursor : "*");
+                    })
+                    .catch((error) => {
+                        throw error;
+                    });
+              })
+              .catch((error) => {
+                  throw error;
+              });
+        })
+        .catch((error) => {
+            throw error;
+        });
+    }
 
   });
 }
