@@ -31,11 +31,19 @@ var files = [];
 function nextDownload() {
     readLine.cursorTo(process.stdout, 0);
     process.stdout.write("Downloads: " + downloadCount + " of " + (files.length - 1));
-    download(files[downloadCount], files[downloadCount], nextDownload);
+    var pathEl = files[downloadCount][1].split("/");
+    if (!fs_1.existsSync(config.download + "/" + pathEl[1])) {
+        fs_1.mkdirSync(config.download + "/" + pathEl[1]);
+    }
+    var fileExt = files[downloadCount][0].split(".");
+    download(files[downloadCount][0], config.download + files[downloadCount][1] + "." + fileExt[fileExt.length - 1], nextDownload);
 }
-client.query("SELECT value FROM metadata WHERE lower(value) similar to '%(jpeg|jpg|bmp|png|tiff|gif)'")
+client.query("SELECT value, europeana_id FROM metadata WHERE lower(value) similar to '%(jpeg|jpg|bmp|png|tiff|gif)'")
     .then(function (res) {
-    files = res.rows.map(function (r) { return r.value; });
+    if (!fs_1.existsSync(config.download)) {
+        fs_1.mkdirSync(config.download);
+    }
+    files = res.rows.map(function (r) { return [r.value, r.europeana_id]; });
     if (process.argv.indexOf("--recover") > 1) {
         client.query("SELECT value FROM temp WHERE key = 'downloadCount' ORDER BY id DESC LIMIT 1")
             .then(function (resTemp) {
