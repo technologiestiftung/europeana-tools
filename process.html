@@ -1,0 +1,73 @@
+<html>
+  <head>
+    <title>Process</title>
+    <script src="https://unpkg.com/@tensorflow/tfjs"></script>
+    <script src="https://unpkg.com/@tensorflow-models/posenet"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js">  </script>
+    <script>
+
+      function sendReceive(data, id){
+        var xhr = new XMLHttpRequest();
+        var url = "//localhost:5678/sendReceive";
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                
+                var json = JSON.parse(xhr.responseText);
+                
+                if ("image" in json) {
+                  compute('./assets/images/' + json.image, json.id);
+                } else {
+                  console.log("Looks like we are done here!");
+                }
+
+            }else{
+              console.log('SHIT');
+            }
+        };
+        xhr.send(JSON.stringify({data, id}));
+      }
+
+      const multiplier = 0.5;
+      const imageScaleFactor = 0.5;
+      const flipHorizontal = false;
+      const outputStride = 8;
+      let estimator = null;
+    
+      function compute(src, id) {
+        const imageElement = new Image();
+        imageElement.src = src;
+        imageElement.crossOrigin = "Anonymous"
+        imageElement.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = imageElement.width;
+          canvas.height = imageElement.height;
+          ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height)
+          let imgdata = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          posenet
+            .load(multiplier)
+            .then(function (net) {
+              if (!estimator) estimator = createEstimator(net);
+              return estimator(imgdata, imageScaleFactor, flipHorizontal, outputStride)
+            })
+            .then((resp) => {
+              sendReceive(resp, id);
+            })
+        }
+      }
+
+      function createEstimator(net) {
+        return function (imageElement, scaleFactor, flipHorizontal, outputStride) {
+          return net.estimateMultiplePoses(imageElement, scaleFactor, flipHorizontal, outputStride);
+        }
+      }
+
+      sendReceive([]);
+
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
