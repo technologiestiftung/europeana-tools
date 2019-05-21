@@ -7,52 +7,102 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
-const fs = require("fs");
-const pg_1 = require("pg");
-const request = require("request");
-const util_1 = require("util");
-const readFile = util_1.promisify(fs.readFile);
-const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-const client = new pg_1.Pool(config.db);
+var fs = require("fs");
+var pg_1 = require("pg");
+var request = require("request");
+var util_1 = require("util");
+var readFile = util_1.promisify(fs.readFile);
+var config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+var client = new pg_1.Pool(config.db);
 client.connect();
 function asyncForEach(array, callback) {
-    return __awaiter(this, void 0, void 0, function* () {
-        for (let index = 0; index < array.length; index++) {
-            yield callback(array[index], index, array);
-        }
+    return __awaiter(this, void 0, void 0, function () {
+        var index;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    index = 0;
+                    _a.label = 1;
+                case 1:
+                    if (!(index < array.length)) return [3 /*break*/, 4];
+                    return [4 /*yield*/, callback(array[index], index, array)];
+                case 2:
+                    _a.sent();
+                    _a.label = 3;
+                case 3:
+                    index++;
+                    return [3 /*break*/, 1];
+                case 4: return [2 /*return*/];
+            }
+        });
     });
 }
-client.query(`SELECT id, download, value FROM metadata WHERE download IS NOT NULL AND image_problem = TRUE`)
-    .then((result) => {
-    asyncForEach(result.rows, (r) => __awaiter(this, void 0, void 0, function* () {
-        yield checkImage(r.download, r.id, r.value);
-    }));
+client.query("SELECT id, download, value FROM metadata WHERE download IS NOT NULL AND image_problem = TRUE")
+    .then(function (result) {
+    asyncForEach(result.rows, function (r) { return __awaiter(_this, void 0, void 0, function () {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, checkImage(r.download, r.id, r.value)];
+                case 1:
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    }); });
 });
-const checkImage = (imagePath, imageID, imageLocation) => {
+var checkImage = function (imagePath, imageID, imageLocation) {
     return readFile(imagePath, "utf8")
-        .then((file) => {
+        .then(function (file) {
         if (file.indexOf("<img src=\"") < 10) {
-            const re = new RegExp("src=\"([^\"]+)\"");
-            const imageUri = file.match(re)[1];
-            console.log(imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri);
-            return new Promise((resolve, reject) => {
+            var re = new RegExp("src=\"([^\"]+)\"");
+            var imageUri_1 = file.match(re)[1];
+            console.log(imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri_1);
+            return new Promise(function (resolve, reject) {
                 request
                     .get({
                     encoding: null,
                     //family: 4,
-                    uri: imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri,
+                    uri: imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri_1,
                 })
-                    .on("error", (err) => {
+                    .on("error", function (err) {
                     console.log(imagePath, err);
                     reject();
                 })
                     .pipe(fs.createWriteStream(imagePath + ".bk.jpg"))
-                    .on("close", () => {
+                    .on("close", function () {
                     console.log(imagePath);
                     resolve();
                 })
-                    .on("error", (err) => {
+                    .on("error", function (err) {
                     console.log(imagePath, err);
                     reject();
                 });
@@ -62,7 +112,7 @@ const checkImage = (imagePath, imageID, imageLocation) => {
             throw new Error("does not match");
         }
     })
-        .catch((err) => {
+        .catch(function (err) {
         // Does not match this special case (likely a 404)
     });
 };

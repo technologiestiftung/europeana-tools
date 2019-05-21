@@ -1,16 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const bodyParser = require("body-parser");
-const express = require("express");
-const fs = require("fs");
-const pg_1 = require("pg");
-const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-const client = new pg_1.Pool(config.db);
+var bodyParser = require("body-parser");
+var express = require("express");
+var fs = require("fs");
+var pg_1 = require("pg");
+var config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+var client = new pg_1.Pool(config.db);
 client.connect();
-const app = express();
+var app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use((req, res, next) => {
+app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -24,18 +24,18 @@ app.use((req, res, next) => {
         next();
     }
 });
-app.use((req, res) => {
+app.use(function (req, res) {
     res.setHeader("Content-Type", "text/plain");
     console.log(req.body);
     if ("body" in req && "data" in req.body) {
         if (req.body.data.length >= 1) {
-            const rel = JSON.parse(JSON.stringify(req.body.data));
-            rel.forEach((body) => {
-                let minX = Number.MAX_VALUE;
-                let minY = Number.MAX_VALUE;
-                let maxX = -Number.MAX_VALUE;
-                let maxY = -Number.MAX_VALUE;
-                body.keypoints.forEach((point) => {
+            var rel = JSON.parse(JSON.stringify(req.body.data));
+            rel.forEach(function (body) {
+                var minX = Number.MAX_VALUE;
+                var minY = Number.MAX_VALUE;
+                var maxX = -Number.MAX_VALUE;
+                var maxY = -Number.MAX_VALUE;
+                body.keypoints.forEach(function (point) {
                     if (point.position.x > maxX) {
                         maxX = point.position.x;
                     }
@@ -49,17 +49,17 @@ app.use((req, res) => {
                         minY = point.position.y;
                     }
                 });
-                const width = maxX - minX;
-                const height = maxY - minY;
-                body.keypoints.forEach((point) => {
+                var width = maxX - minX;
+                var height = maxY - minY;
+                body.keypoints.forEach(function (point) {
                     point.position.x = (point.position.x - minX) / width;
                     point.position.x = (point.position.x - minY) / height;
                 });
             });
-            client.query(`UPDATE metadata SET hasPose = TRUE, absPose = '${req.body.data}', relPose = '${rel}' WHERE id = ${req.body.id}`);
+            client.query("UPDATE metadata SET hasPose = TRUE, absPose = '" + req.body.data + "', relPose = '" + rel + "' WHERE id = " + req.body.id);
         }
-        client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND id > ${req.body.id} ORDER BY id ASC LIMIT 1`)
-            .then((result) => {
+        client.query("SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND id > " + req.body.id + " ORDER BY id ASC LIMIT 1")
+            .then(function (result) {
             if ("rows" in result && result.rows.length >= 1) {
                 res.end(JSON.stringify({ id: result.rows[0].id, image: result.rows[0].download }));
             }
@@ -72,7 +72,7 @@ app.use((req, res) => {
         res.end(JSON.stringify({ message: "empty" }));
     }
 });
-app.listen(5678, () => {
+app.listen(5678, function () {
     console.log("Example app listening on port 5678!");
 });
 //# sourceMappingURL=process.js.map

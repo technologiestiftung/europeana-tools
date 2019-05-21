@@ -1,9 +1,5 @@
-<html>
-<head>
-<title>Process</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script> 
-<script>
+import * as posenet from "@tensorflow-models/posenet";
+import * as tf from "@tensorflow/tfjs";
 
 const url = "//localhost:5678/sendReceive";
 
@@ -43,9 +39,14 @@ function compute(src, id) {
     imageElement.crossOrigin = "Anonymous";
     imageElement.onload = async () => {
 
-        // const input = tf.browser.fromPixels();
-
-        const resp = await net.estimateMultiplePoses(imageElement, imageScaleFactor, flipHorizontal, outputStride);
+        const input = tf.browser.fromPixels(imageElement);
+        const resp = await net.estimatePoses(input, {
+            decodingMethod: "multi-person",
+            flipHorizontal,
+            imageScaleFactor,
+            multiplier,
+            outputStride,
+        });
 
         console.log(resp);
 
@@ -53,7 +54,7 @@ function compute(src, id) {
     };
 }
 
-function start() {
+export function start() {
     posenet
         .load(multiplier)
         .then((pnet) => {
@@ -61,11 +62,3 @@ function start() {
             sendReceive([], 0);
         });
 }
-
-start();
-
-</script>
-</head>
-<body>
-</body>
-</html>
