@@ -1,35 +1,35 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require("@tensorflow/tfjs-node");
-var canvas_1 = require("canvas");
-var fs = require("fs");
-var posenet = require("@tensorflow-models/posenet");
-var xhr2 = require("xhr2");
+const canvas_1 = require("canvas");
+const fs = require("fs");
+const posenet = require("@tensorflow-models/posenet");
+const xhr2 = require("xhr2");
 global.XMLHttpRequest = xhr2;
-var getData = function (fileName) {
-    return new Promise(function (resolve, reject) {
-        fs.readFile(fileName, function (err, data) {
+const getData = (fileName) => {
+    return new Promise((resolve, reject) => {
+        fs.readFile(fileName, (err, data) => {
             err ? reject(err) : resolve(data);
         });
     });
 };
-var imageScaleFactor = 0.5;
-var flipHorizontal = false;
-var outputStride = 8;
-var multiplier = 0.5;
-var net = null;
+const imageScaleFactor = 0.5;
+const flipHorizontal = false;
+const outputStride = 8;
+const multiplier = 0.5;
+let net = null;
 posenet.load(multiplier)
-    .then(function (tNet) {
+    .then((tNet) => {
     net = tNet;
     return getData("./assets/images/people.jpg");
 })
-    .then(function (buffer) {
-    var img = new canvas_1.Image();
+    .then((buffer) => {
+    const img = new canvas_1.Image();
     img.src = buffer;
-    var canvas = canvas_1.createCanvas(img.width, img.height);
+    const canvas = canvas_1.createCanvas(img.width, img.height);
     canvas.getContext("2d").drawImage(img, 0, 0);
     return net.estimateMultiplePoses(canvas, imageScaleFactor, flipHorizontal, outputStride);
-}).then(function (pose) {
+}).then((pose) => {
     fs.writeFileSync("./assets/images/people.json", JSON.stringify(pose), "utf8");
 });
 //# sourceMappingURL=pose.js.map

@@ -7,7 +7,10 @@
     "lint": "tslint -p tslint.json --force",
     "build": "tsc",
     "typescript": "npm run lint && npm run build",
-    "watch": "nodemon "
+    "watch": "nodemon ",
+    "go1": "http-server -p 8000 --cors",
+    "go2": "node dst/process.js",
+    "go3": "cd /media/labrat/LinuxData/europeana_downloads_complete && http-server -p 9000 --cors"
   },
   "repository": {
     "type": "git",

@@ -1,41 +1,51 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var bodyParser = require("body-parser");
-var express = require("express");
-var fs = require("fs");
-var pg_1 = require("pg");
-var config = JSON.parse(fs.readFileSync("config.json", "utf8"));
-var client = new pg_1.Pool(config.db);
+const bodyParser = require("body-parser");
+const express = require("express");
+const fs = require("fs");
+const pg_1 = require("pg");
+const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const client = new pg_1.Pool(config.db);
 client.connect();
-var app = express();
+const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(function (req, res, next) {
+app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
+    res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    //intercepts OPTIONS method
-    if ('OPTIONS' === req.method) {
-        //respond with 200
-        res.send(200);
+    // intercepts OPTIONS method
+    if ("OPTIONS" === req.method) {
+        // respond with 200
+        res.sendStatus(200);
     }
     else {
-        //move on
+        // move on
         next();
     }
 });
-app.use(function (req, res) {
+app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     res.setHeader("Content-Type", "text/plain");
     console.log(req.body);
     if ("body" in req && "data" in req.body) {
         if (req.body.data.length >= 1) {
-            var rel = JSON.parse(JSON.stringify(req.body.data));
-            rel.forEach(function (body) {
-                var minX = Number.MAX_VALUE;
-                var minY = Number.MAX_VALUE;
-                var maxX = -Number.MAX_VALUE;
-                var maxY = -Number.MAX_VALUE;
-                body.keypoints.forEach(function (point) {
+            const rel = JSON.parse(JSON.stringify(req.body.data));
+            const compress = [];
+            rel.forEach((body) => {
+                const cBody = [];
+                let minX = Number.MAX_VALUE;
+                let minY = Number.MAX_VALUE;
+                let maxX = -Number.MAX_VALUE;
+                let maxY = -Number.MAX_VALUE;
+                body.keypoints.forEach((point) => {
                     if (point.position.x > maxX) {
                         maxX = point.position.x;
                     }
@@ -49,30 +59,34 @@ app.use(function (req, res) {
                         minY = point.position.y;
                     }
                 });
-                var width = maxX - minX;
-                var height = maxY - minY;
-                body.keypoints.forEach(function (point) {
+                const width = maxX - minX;
+                const height = maxY - minY;
+                body.keypoints.forEach((point) => {
                     point.position.x = (point.position.x - minX) / width;
-                    point.position.x = (point.position.x - minY) / height;
+                    point.position.y = (point.position.y - minY) / height;
+                    cBody.push(point.position.x);
+                    cBody.push(point.position.y);
                 });
+                compress.push(cBody);
             });
-            client.query("UPDATE metadata SET hasPose = TRUE, absPose = '" + req.body.data + "', relPose = '" + rel + "' WHERE id = " + req.body.id);
+            yield client.query(`UPDATE metadata SET has_pose = TRUE, pose_done = TRUE, compress_pose = '${JSON.stringify(compress)}', abs_pose = '${JSON.stringify(req.body.data)}', rel_pose = '${JSON.stringify(rel)}' WHERE id = ${req.body.id}`);
         }
-        client.query("SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND id > " + req.body.id + " ORDER BY id ASC LIMIT 1")
-            .then(function (result) {
-            if ("rows" in result && result.rows.length >= 1) {
-                res.end(JSON.stringify({ id: result.rows[0].id, image: result.rows[0].download }));
-            }
-            else {
-                res.end(JSON.stringify({ message: "we are done" }));
-            }
-        });
+        else if (req.body.id !== 0 && req.body.id !== "0") {
+            yield client.query(`UPDATE metadata SET pose_done = TRUE WHERE id = ${req.body.id}`);
+        }
+        const result = yield client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND pose_done IS NULL AND id > ${req.body.id} ORDER BY id ASC LIMIT 1`);
+        if ("rows" in result && result.rows.length >= 1) {
+            res.end(JSON.stringify({ id: result.rows[0].id, image: result.rows[0].download }));
+        }
+        else {
+            res.end(JSON.stringify({ message: "we are done" }));
+        }
     }
     else {
         res.end(JSON.stringify({ message: "empty" }));
     }
-});
-app.listen(5678, function () {
+}));
+app.listen(5678, () => {
     console.log("Example app listening on port 5678!");
 });
 //# sourceMappingURL=process.js.map

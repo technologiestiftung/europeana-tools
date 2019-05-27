@@ -1,7 +1,7 @@
 declare var d3: any;
 
-const width = 553;
-const height = 800;
+const width = 345;
+const height = 500;
 
 /*
 const width = 940;
