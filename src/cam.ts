@@ -152,6 +152,8 @@ let svg;
 let poses;
 const poseKeys = {};
 let vptree;
+const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
+const context = canvas.getContext('2d');
 
 const videoWidth = 640; // 1280
 const videoHeight = 360; // 720
@@ -178,8 +180,8 @@ async function setup() {
   vptree = VPTreeFactory.build(poseData, cosineDistanceMatching);
 
   svg = d3.select("body").append("svg")
-    .attr("width", videoWidth)
-    .attr("height", videoHeight);
+    .attr("width", videoHeight)
+    .attr("height", videoWidth);
 
   video = document.getElementById("video") as HTMLVideoElement;
   video.width = videoWidth;
@@ -187,6 +189,11 @@ async function setup() {
 
   // load posenet
   net = await posenet.load(multiplier);
+
+  canvas.width  = videoHeight;
+  canvas.height = videoWidth;
+  context.translate(canvas.width/2,canvas.height/2);
+  context.rotate(-Math.PI/2);
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
@@ -237,76 +244,86 @@ const pairs = [
 ];
 
 async function detectPose() {
-  // estimateSinglePose
-  const resp = await net.estimateMultiplePoses(video, imageScaleFactor, flipHorizontal, outputStride);
 
-  let highestScore = -Number.MAX_VALUE;
-  let highestPose;
+  const imageElement = new Image();
+  imageElement.crossOrigin = "Anonymous";
+  imageElement.onload = async () => {
 
-  // remove poses with low probability
-  for (let i = resp.length - 1; i >= 0; i--) {
-      if (resp[i].score < 0.1) {
-          resp.splice(i, 1);
-      } else {
-        if (resp[i].score > highestScore) {
-          highestScore = resp[i].score;
-          highestPose = resp[i];
+    // estimateSinglePose
+    const resp = await net.estimateMultiplePoses(imageElement, imageScaleFactor, flipHorizontal, outputStride);
+
+    let highestScore = -Number.MAX_VALUE;
+    let highestPose;
+
+    // remove poses with low probability
+    for (let i = resp.length - 1; i >= 0; i--) {
+        if (resp[i].score < 0.1) {
+            resp.splice(i, 1);
+        } else {
+          if (resp[i].score > highestScore) {
+            highestScore = resp[i].score;
+            highestPose = resp[i];
+          }
+          resp[i].pairs = [];
+          pairs.forEach((p) => {
+            const p1 = getPart(resp[i].keypoints, p[0]);
+            const p2 = getPart(resp[i].keypoints, p[1]);
+            resp[i].pairs.push([p1.x, p1.y, p2.x, p2.y]);
+          });
         }
-        resp[i].pairs = [];
-        pairs.forEach((p) => {
-          const p1 = getPart(resp[i].keypoints, p[0]);
-          const p2 = getPart(resp[i].keypoints, p[1]);
-          resp[i].pairs.push([p1.x, p1.y, p2.x, p2.y]);
-        });
-      }
-  }
+    }
 
-  if (resp.length > 0) {
+    if (resp.length > 0) {
 
-    const cBody = [];
+      const cBody = [];
 
-    let minX = Number.MAX_VALUE;
-    let minY = Number.MAX_VALUE;
-    let maxX = -Number.MAX_VALUE;
-    let maxY = -Number.MAX_VALUE;
-    highestPose.keypoints.forEach((point) => {
-      if (point.position.x > maxX) { maxX = point.position.x; }
-      if (point.position.y > maxY) { maxY = point.position.y; }
-      if (point.position.x < minX) { minX = point.position.x; }
-      if (point.position.y < minY) { minY = point.position.y; }
-    });
+      let minX = Number.MAX_VALUE;
+      let minY = Number.MAX_VALUE;
+      let maxX = -Number.MAX_VALUE;
+      let maxY = -Number.MAX_VALUE;
+      highestPose.keypoints.forEach((point) => {
+        if (point.position.x > maxX) { maxX = point.position.x; }
+        if (point.position.y > maxY) { maxY = point.position.y; }
+        if (point.position.x < minX) { minX = point.position.x; }
+        if (point.position.y < minY) { minY = point.position.y; }
+      });
 
-    const width = maxX - minX;
-    const height = maxY - minY;
+      const width = maxX - minX;
+      const height = maxY - minY;
 
-    highestPose.keypoints.forEach((point) => {
-      cBody.push((point.position.x - minX) / width);
-      cBody.push((point.position.y - minY) / height);
-    });
+      highestPose.keypoints.forEach((point) => {
+        cBody.push((point.position.x - minX) / width);
+        cBody.push((point.position.y - minY) / height);
+      });
 
-    const nearestImage = vptree.search(cBody); // include n > number of similar samples
+      const nearestImage = vptree.search(cBody); // include n > number of similar samples
 
-    // ToDo check if the image was already shown
+      // ToDo check if the image was already shown
+      const result = poses[poseKeys[nearestImage[0].i]];
+      d3.select("#image").attr("src", "http://localhost:9000" + result.image.split("europeana_downloads_complete")[1]);
 
-    // console.log(poses[poseKeys[nearestImage[0].i]]);
+      svg.selectAll("*").remove();
 
-    svg.selectAll("*").remove();
+      const groups = svg.selectAll("g").data(resp).enter().append("g");
+      groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
+        .attr("cx", (d) => d.position.x)
+        .attr("cy", (d) => d.position.y)
+        .attr("r", (d) => 5)
+        .style("fill", (d) => `rgba(255,0,0,${d.score})`);
 
-    const groups = svg.selectAll("g").data(resp).enter().append("g");
-    groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
-      .attr("cx", (d) => d.position.x)
-      .attr("cy", (d) => d.position.y)
-      .attr("r", (d) => 5)
-      .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+      groups.selectAll("line").data((d) => d.pairs).enter().append("line")
+        .attr("x1", (d) => d[0])
+        .attr("y1", (d) => d[1])
+        .attr("x2", (d) => d[2])
+        .attr("y2", (d) => d[3]);
+    }
 
-    groups.selectAll("line").data((d) => d.pairs).enter().append("line")
-      .attr("x1", (d) => d[0])
-      .attr("y1", (d) => d[1])
-      .attr("x2", (d) => d[2])
-      .attr("y2", (d) => d[3]);
-  }
+    window.requestAnimationFrame(detectPose);
 
-  window.requestAnimationFrame(detectPose);
+  };
+
+  context.drawImage(video, -canvas.height/2, -canvas.width/2);
+  imageElement.src = canvas.toDataURL("image/png");
 }
 
 d3.json("poses.json")

@@ -2,10 +2,26 @@
 <head>
 <title>Process</title>
 <style>
-    video, svg{
+    video, svg, canvas, #image{
         position:absolute;
         top:0;
         left:0;
+    }
+
+    video{
+        transform-origin: 0 100%;
+        transform: translate(360px,280px) rotate(-90deg);        
+    }
+
+    canvas {
+        left: 720px;
+    }
+
+    #image{
+        top:500px;
+        left: 500px;
+        max-width:500px;
+        max-height:500px;
     }
 
     circle{
@@ -20,6 +36,8 @@
 </head>
 <body>
     <video id="video" playsinline></video>
+    <canvas id="canvas"></canvas>
+    <img id="image" />
     <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script> 
     <script src="https://d3js.org/d3.v5.min.js"></script> -->
