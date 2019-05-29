@@ -14,5 +14,6 @@ client.query("SELECT id, download, compress_pose FROM metadata WHERE has_pose")
     });
     wstream.write("]");
     wstream.end();
+    process.exit();
 });
 //# sourceMappingURL=exportPose.js.map

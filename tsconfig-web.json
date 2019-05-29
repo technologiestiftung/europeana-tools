@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+      "target": "es5",
+      "module": "UMD",
+      "sourceMap": true,
+      "allowJs": true,
+      "moduleResolution": "node",
+      "noUnusedLocals": false,
+      "outDir": "./dst",
+      "baseUrl": ".",
+      "paths": {
+        "/web_modules/*": [
+          "web_modules/*",
+          "node_modules/*",
+        ]
+      },
+      "typeRoots": [
+          "./node_modules/@types"
+      ]
+  },
+  "include": ["src/cam.ts", "src/compute-cosine-similarity.ts"],
+  "exclude": [
+    "node_modules"
+]
+}
+
+
