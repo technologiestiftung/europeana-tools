@@ -1,0 +1,135 @@
+<html>
+<head>
+<title>Process</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> 
+<script src="https://cdn.jsdelivr.net/npm/tfjs-tiny-yolov2@0.4.0/dist/tiny-yolov2.min.js"></script> 
+<script>
+
+const url = "//localhost:5681/sendReceive";
+
+function sendReceive(data, id) {
+    // const xhr = new XMLHttpRequest();
+    // xhr.open("POST", url, true);
+    // xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    // xhr.onreadystatechange = () => {
+
+    //     if (xhr.readyState === 4 && xhr.status === 200) {
+
+    //         const json = JSON.parse(xhr.responseText);
+
+    //         if ("image" in json) {
+    //             console.log(json.image);
+    //             // if(count > 3) {
+    //             //     location.reload(true);
+    //             // } else {
+    //                 compute(json.image, json.id);
+    //             // }
+                
+    //         } else {
+    //             console.log("Looks like we are done here!");
+    //         }
+
+    //     } else if( xhr.status === 200) {
+
+    //         // console.log("OPTIONS RESPONSE");
+
+    //     } else {
+    //         console.log("SHIT");
+    //         // let's try again
+    //         sendReceive(data, id);
+    //     }
+    // };
+    // xhr.send(JSON.stringify({data, id}));
+    compute(1,1);
+}
+
+const imageSize = 704;
+const scoreThreshold = 0.5;
+const sizeType = imageSize;
+let count = 0;
+const canvas = document.createElement("canvas");
+
+function compute(src, id) {
+    const imageElement = new Image();
+    const srcParts = src.split("europeana_downloads_complete/");
+    imageElement.src = "http://127.0.0.1:9000/" + srcParts[srcParts.length - 1];
+    imageElement.crossOrigin = "Anonymous";
+    imageElement.onload = async () => {
+
+        if(imageElement.height !== imageSize || imageElement.width !== imageSize) {
+            const imageScaleFactor = (imageElement.height > imageElement.width) ? imageSize / imageElement.height : imageSize / imageElement.width;
+            // console.log("resize", imageScaleFactor);
+            canvas.width = imageSize;
+            canvas.height = imageSize;
+            canvas.getContext("2d").drawImage(imageElement, 0, 0, imageElement.width * imageScaleFactor, imageElement.height * imageScaleFactor);
+            imageElement.src = canvas.toDataURL("image/png");
+        } else {
+            const imageScaleFactor = 1;
+            // console.log(imageElement.height, imageElement.width, imageScaleFactor);
+            try {
+                const forwardParams = {
+                  inputSize: parseInt(sizeType),
+                  scoreThreshold
+                };
+
+                const resp = await net.detect(imageElement, forwardParams);
+
+                count++;
+
+                console.log(count, JSON.stringify(resp));
+
+                window.requestAnimationFrame(function(){ sendReceive(resp, id);});
+            } catch (err) {
+                console.log("ERROR", err);
+                location.reload(true);
+            }       
+        }
+        
+    };
+}
+
+let net;
+
+async function start() {
+    const config = {
+      "withSeparableConvs": false,
+      "iouThreshold": 0.4,
+      "anchors": [
+        { "x": 0.57, "y": 0.68 },
+        { "x": 1.87, "y": 2.06 },
+        { "x": 3.34, "y": 5.47 },
+        { "x": 7.88, "y": 3.53 },
+        { "x": 9.77, "y": 9.17 }
+      ],
+      "classes": [
+        "person", "bicycle", "car", "motorbike", "aeroplane",
+        "bus", "train", "truck", "boat", "traffic light",
+        "fire hydrant", "stop sign", "parking meter", "bench", "bird",
+        "cat", "dog", "horse", "sheep", "cow",
+        "elephant", "bear", "zebra", "giraffe", "backpack",
+        "umbrella" ,"handbag", "tie", "suitcase", "frisbee",
+        "skis", "snowboard", "sports ball", "kite", "baseball bat",
+        "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle",
+        "wine glass", "cup", "fork", "knife", "spoon",
+        "bowl", "banana", "apple", "sandwich", "orange",
+        "broccoli", "carrot", "hot dog", "pizza", "donut",
+        "cake", "chair", "sofa", "pottedplant", "bed",
+        "diningtable", "toilet", "tvmonitor", "laptop", "mouse",
+        "remote", "keyboard", "cell phone", "microwave", "oven",
+        "toaster", "sink", "refrigerator", "book", "clock",
+        "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+      ]
+    };
+
+    net = new yolo.TinyYolov2(config);
+    await net.load(`assets/js/tfjs-tiny-yolov2/coco_model-weights_manifest.json`)
+    sendReceive([], 0);
+}
+
+start();
+
+</script>
+</head>
+<body>
+</body>
+</html>

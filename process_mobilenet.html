@@ -1,0 +1,94 @@
+<html>
+<head>
+<title>Process</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> 
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script> 
+<script>
+
+const url = "//localhost:5680/sendReceive";
+
+function sendReceive(data, id) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.onreadystatechange = () => {
+
+        if (xhr.readyState === 4 && xhr.status === 200) {
+
+            const json = JSON.parse(xhr.responseText);
+
+            if ("image" in json) {
+                console.log(json.image);
+                // if(count > 3) {
+                //     location.reload(true);
+                // } else {
+                    compute(json.image, json.id);
+                // }
+                
+            } else {
+                console.log("Looks like we are done here!");
+            }
+
+        } else if( xhr.status === 200) {
+
+            // console.log("OPTIONS RESPONSE");
+
+        } else {
+            console.log("SHIT");
+            // let's try again
+            sendReceive(data, id);
+        }
+    };
+    xhr.send(JSON.stringify({data, id}));
+}
+
+let count = 0;
+const canvas = document.createElement("canvas");
+
+const imageSize = 700;
+
+function compute(src, id) {
+    const imageElement = new Image();
+    const srcParts = src.split("europeana_downloads_complete/");
+    imageElement.src = "http://127.0.0.1:9000/" + srcParts[srcParts.length - 1];
+    imageElement.crossOrigin = "Anonymous";
+    imageElement.onload = async () => {
+
+        if(imageElement.height !== imageSize || imageElement.width !== imageSize) {
+            const imageScaleFactor = (imageElement.height > imageElement.width) ? imageSize / imageElement.height : imageSize / imageElement.width;
+            // console.log("resize", imageScaleFactor);
+            canvas.width = imageSize;
+            canvas.height = imageSize;
+            canvas.getContext("2d").drawImage(imageElement, 0, 0, imageElement.width * imageScaleFactor, imageElement.height * imageScaleFactor);
+            imageElement.src = canvas.toDataURL("image/png");
+        } else {
+            const imageScaleFactor = 1;
+            try {
+                const resp = await net.classify(imageElement);
+  
+                count++;
+
+                window.requestAnimationFrame(function(){ sendReceive(resp, id);});
+            } catch (err) {
+                console.log("ERROR", err);
+                location.reload(true);
+            }       
+        }
+        
+    };
+}
+
+let net;
+
+async function start() {
+    net = await mobilenet.load()
+    sendReceive([], 0);
+}
+
+start();
+
+</script>
+</head>
+<body>
+</body>
+</html>
