@@ -6,16 +6,8 @@ const out = fs.createWriteStream("export/print.png");
 const canvas = createCanvas(2526, 1785);
 const ctx = canvas.getContext("2d");
 
- // Draw line under text
-// var text = ctx.measureText('Awesome!')
-// ctx.strokeStyle = 'rgba(0,0,0,0.5)'
-// ctx.beginPath()
-// ctx.lineTo(50, 102)
-// ctx.lineTo(50 + text.width, 102)
-// ctx.stroke()
-
 // Source: https://codepen.io/bramus/pen/eZYqoO
-function wrapText(context, text, x, y, maxWidth, lineHeight) {
+const wrapText = (context, text, x, y, maxWidth, lineHeight) => {
   const words = text.split(" ");
   let line = "";
 
@@ -34,26 +26,85 @@ function wrapText(context, text, x, y, maxWidth, lineHeight) {
   context.fillText(line, x, y);
 
   return y + lineHeight;
-}
+};
 
 const scaleFactor = (image, maxWidth, maxHeight) => {
   const scaleWidth = maxWidth / image.width;
   const scaleHeight = maxHeight / image.height;
   let scale = scaleWidth;
+  let poseScale = 1 / 700 * maxWidth;
 
   if ( scaleWidth > scaleHeight ) {
     scale = scaleHeight;
-  }
-
-  const poseScaleWidth = maxWidth / 700;
-  const poseScaleHeight = maxHeight / 700;
-  let poseScale = poseScaleWidth;
-
-  if ( poseScaleWidth > poseScaleHeight ) {
-    poseScale = poseScaleHeight;
+    poseScale = 1 / 700 * maxHeight;
   }
 
   return [scale, poseScale];
+};
+
+const getData = (fileName, type) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile(fileName, type, (err, data) => {
+        err ? reject(err) : resolve(data);
+    });
+  });
+};
+
+const pairs = [
+  ["nose", "leftEye"],
+  ["nose", "rightEye"],
+  ["leftEar", "leftEye"],
+  ["rightEar", "rightEye"],
+
+  ["leftShoulder", "rightShoulder"],
+  ["leftShoulder", "leftElbow"],
+  ["rightElbow", "rightShoulder"],
+  ["leftWrist", "leftElbow"],
+  ["rightElbow", "rightWrist"],
+
+  ["leftShoulder", "leftHip"],
+  ["rightShoulder", "rightHip"],
+
+  ["leftHip", "rightHip"],
+  ["leftHip", "leftKnee"],
+  ["rightKnee", "rightHip"],
+  ["leftAnkle", "leftKnee"],
+  ["rightKnee", "rightAnkle"],
+];
+
+const getPart = (arr, key) => {
+  let r = {x: 0, y: 0};
+  arr.forEach( (a) => {
+      if (a.part === key) {
+          r = a.position;
+      }
+  });
+  return r;
+};
+
+const drawPose = (pose, x, y, scale, context) => {
+
+  context.strokeStyle = "rgba(216,36,42,1)";
+  context.fillStyle = "rgba(30,55,144,1)";
+  context.lineWidth = 5;
+
+  const keyPairs = [];
+  pairs.forEach((p) => {
+    const p1 = getPart(pose.keypoints, p[0]);
+    const p2 = getPart(pose.keypoints, p[1]);
+    context.beginPath();
+    context.moveTo(p1.x * scale + x, p1.y * scale + y);
+    context.lineTo(p2.x * scale + x, p2.y * scale + y);
+    context.stroke();
+  });
+
+  pose.keypoints.forEach((key) => {
+    context.beginPath();
+    context.arc(key.position.x * scale + x, key.position.y * scale + y, 5, 0, 2 * Math.PI);
+    context.stroke();
+    context.fill();
+  });
+
 };
 
 // Load the background
@@ -62,6 +113,8 @@ Promise.all([
   loadImage("assets/images/print_bg.png"),
   loadImage("assets/images/people.jpeg"),
   loadImage("assets/images/people.jpg"),
+  getData("assets/images/people-jpeg.json", "utf8"),
+  getData("assets/images/people-jpg.json", "utf8"),
 ]).then((images) => {
   ctx.drawImage(images[0], 0, 0, 2526, 1785);
 
@@ -72,11 +125,23 @@ Promise.all([
 
   ctx.drawImage(images[1], 29 * 3, 125 * 3, images[1].width * scale1[0], images[1].height * scale1[0]);
   ctx.rect(29 * 3, 125 * 3, images[1].width * scale1[0], images[1].height * scale1[0]);
+  ctx.strokeStyle = "rgba(0,0,0,1)";
+  ctx.lineWidth = 2;
   ctx.stroke();
+
+  const pose1 = JSON.parse(images[3] as string);
+  drawPose(pose1[0], 29 * 3, 125 * 3, scale1[1], ctx);
 
   ctx.drawImage(images[2], 29 * 3 + images[1].width * scale1[0] + gap, 125 * 3, images[2].width * scale2[0], images[2].height * scale2[0]);
   ctx.rect(29 * 3 + images[1].width * scale1[0] + gap, 125 * 3, images[2].width * scale2[0], images[2].height * scale2[0]);
+  ctx.strokeStyle = "rgba(0,0,0,1)";
+  ctx.lineWidth = 2;
   ctx.stroke();
+
+  const pose2 = JSON.parse(images[4] as string);
+  drawPose(pose2[0], 29 * 3 + images[1].width * scale1[0] + gap, 125 * 3, scale2[1], ctx);
+
+  ctx.fillStyle = "rgba(0,0,0,1)";
 
   // Funding text
   ctx.font = "24px \"ClanCompPro-Book\"";
