@@ -28,7 +28,7 @@ posenet.load(multiplier)
     net = tNet;
     return getData("./assets/images/people.jpg");
   })
-  .then((buffer) => {
+  .then((buffer: Buffer) => {
     const img = new Image();
     img.src = buffer;
     const canvas = createCanvas(img.width, img.height);
