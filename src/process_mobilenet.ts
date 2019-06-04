@@ -1,7 +1,7 @@
 import * as bodyParser from "body-parser";
+import { prependOnceListener } from "cluster";
 import * as express from "express";
 import * as fs from "fs";
-import { prependOnceListener } from "cluster";
 import { Pool } from "pg";
 
 const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
@@ -31,7 +31,6 @@ app.use((req, res, next) => {
 app.use(async (req, res) => {
   res.setHeader("Content-Type", "text/plain");
 
-  console.log(req.body);
   if ("body" in req && "data" in req.body) {
     if (req.body.data.length >= 1) {
 
@@ -42,7 +41,13 @@ app.use(async (req, res) => {
       await client.query(`UPDATE metadata SET mobilenet_done = TRUE WHERE id = ${req.body.id}`);
     }
 
-    const result = await client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND mobilenet_done IS NULL AND id > ${req.body.id} ORDER BY id ASC LIMIT 1`);
+    const result = await client.query(`SELECT id, download \
+    FROM metadata \
+    WHERE download IS NOT NULL \
+    AND image_problem IS NULL \
+    AND mobilenet_done IS NULL \
+    AND id > ${req.body.id} \
+    ORDER BY id ASC LIMIT 1`);
     if ("rows" in result && result.rows.length >= 1) {
       res.end(JSON.stringify({id: result.rows[0].id, image: result.rows[0].download}));
     } else {
@@ -55,5 +60,5 @@ app.use(async (req, res) => {
 });
 
 app.listen(5680, () => {
-  console.log("Example app listening on port 5680!");
+  process.stdout.write("Example app listening on port 5680!");
 });

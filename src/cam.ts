@@ -14,131 +14,131 @@ const isArray = ( value ) => {
 };
 
 const dot = ( x, y, clbk? ) => {
-	if ( !isArray( x ) ) {
-		throw new TypeError( "dot()::invalid input argument. First argument must be an array. Value: `" + x + "`." );
-	}
-	if ( !isArray( y ) ) {
-		throw new TypeError( "dot()::invalid input argument. Second argument must be an array. Value: `" + y + "`." );
-	}
-	if ( clbk ) {
-		if ( !isFunction( clbk ) ) {
-			throw new TypeError( "dot()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`." );
-		}
-	}
-	let len = x.length;
-	let sum = 0;
-	let i;
+  if ( !isArray( x ) ) {
+    throw new TypeError( "dot()::invalid input argument. First argument must be an array. Value: `" + x + "`." );
+  }
+  if ( !isArray( y ) ) {
+    throw new TypeError( "dot()::invalid input argument. Second argument must be an array. Value: `" + y + "`." );
+  }
+  if ( clbk ) {
+    if ( !isFunction( clbk ) ) {
+      throw new TypeError( "dot()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`." );
+    }
+  }
 
-	if ( len !== y.length ) {
-		throw new Error( "dot()::invalid input argument. Arrays must be of equal length." );
-	}
-	if ( !len ) {
-		return null;
-	}
-	if ( clbk ) {
-		for ( i = 0; i < len; i++ ) {
-			sum += clbk( x[ i ], i, 0 ) * clbk( y[ i ], i, 1 );
-		}
-	} else {
-		for ( i = 0; i < len; i++ ) {
-			sum += x[ i ] * y[ i ];
-		}
-	}
-	return sum;
+  const len = x.length;
+  let sum = 0;
+  let i;
+
+  if ( len !== y.length ) {
+    throw new Error( "dot()::invalid input argument. Arrays must be of equal length." );
+  }
+  if ( !len ) {
+    return null;
+  }
+  if ( clbk ) {
+    for ( i = 0; i < len; i++ ) {
+      sum += clbk( x[ i ], i, 0 ) * clbk( y[ i ], i, 1 );
+    }
+  } else {
+    for ( i = 0; i < len; i++ ) {
+      sum += x[ i ] * y[ i ];
+    }
+  }
+  return sum;
 };
 
 const l2norm = ( arr, clbk? ) => {
-	if ( !isArray( arr ) ) {
-		throw new TypeError( "l2norm()::invalid input argument. Must provide an array.  Value: `" + arr + "`." );
-	}
-	if ( clbk ) {
-		if ( !isFunction( clbk ) ) {
-			throw new TypeError( "l2norm()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`." );
-		}
-	}
-	const len = arr.length;
-	let t = 0;
+  if ( !isArray( arr ) ) {
+    throw new TypeError( "l2norm()::invalid input argument. Must provide an array.  Value: `" + arr + "`." );
+  }
+  if ( clbk ) {
+    if ( !isFunction( clbk ) ) {
+      throw new TypeError( "l2norm()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`." );
+    }
+  }
+  const len = arr.length;
+  let t = 0;
   let s = 1;
   let r;
   let val;
   let abs;
-	let i;
+  let i;
 
-	if ( !len ) {
-		return null;
-	}
-	if ( clbk ) {
-		for ( i = 0; i < len; i++ ) {
-			val = clbk( arr[ i ], i );
-			abs = ( val < 0 ) ? -val : val;
-			if ( abs > 0 ) {
-				if ( abs > t ) {
-					r = t / val;
-					s = 1 + s*r*r;
-					t = abs;
-				} else {
-					r = val / t;
-					s = s + r*r;
-				}
-			}
-		}
-	} else {
-		for ( i = 0; i < len; i++ ) {
-			val = arr[ i ];
-			abs = ( val < 0 ) ? -val : val;
-			if ( abs > 0 ) {
-				if ( abs > t ) {
-					r = t / val;
-					s = 1 + s*r*r;
-					t = abs;
-				} else {
-					r = val / t;
-					s = s + r*r;
-				}
-			}
-		}
-	}
-	return t * Math.sqrt( s );
+  if ( !len ) {
+    return null;
+  }
+  if ( clbk ) {
+    for ( i = 0; i < len; i++ ) {
+      val = clbk( arr[ i ], i );
+      abs = ( val < 0 ) ? -val : val;
+      if ( abs > 0 ) {
+        if ( abs > t ) {
+          r = t / val;
+          s = 1 + s * r * r;
+          t = abs;
+        } else {
+          r = val / t;
+          s = s + r * r;
+        }
+      }
+    }
+  } else {
+    for ( i = 0; i < len; i++ ) {
+      val = arr[ i ];
+      abs = ( val < 0 ) ? -val : val;
+      if ( abs > 0 ) {
+        if ( abs > t ) {
+          r = t / val;
+          s = 1 + s * r * r;
+          t = abs;
+        } else {
+          r = val / t;
+          s = s + r * r;
+        }
+      }
+    }
+  }
+  return t * Math.sqrt( s );
 };
-	
 
 function partial( fn, j ) {
-	return function accessor( d, i ) {
-		return fn( d, i, j );
-	};
+  return function accessor( d, i ) {
+    return fn( d, i, j );
+  };
 }
 
 function similarity( x, y, clbk? ) {
   let a;
   let b;
   let c;
-	if ( !isArray( x ) ) {
-		throw new TypeError( "cosine-similarity()::invalid input argument. First argument must be an array. Value: `" + x + "`." );
-	}
-	if ( !isArray( y ) ) {
-		throw new TypeError( "cosine-similarity()::invalid input argument. Second argument must be an array. Value: `" + y + "`." );
-	}
-	if ( arguments.length > 2 ) {
-		if ( !isFunction( clbk ) ) {
-			throw new TypeError( "cosine-similarity()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`." );
-		}
-	}
-	if ( x.length !== y.length ) {
-		throw new Error( "cosine-similarity()::invalid input argument. Input arrays must have the same length." );
-	}
-	if ( !x.length ) {
-		return null;
-	}
-	if ( clbk ) {
-		a = dot( x, y, clbk );
-		b = l2norm( x, partial( clbk, 0 ) );
-		c = l2norm( y, partial( clbk, 1 ) );
-	} else {
-		a = dot( x, y );
-		b = l2norm( x );
-		c = l2norm( y );
-	}
-	return a / ( b*c );
+  if ( !isArray( x ) ) {
+    throw new TypeError( "cosine-similarity()::invalid input argument. First argument must be an array. Value: `" + x + "`." );
+  }
+  if ( !isArray( y ) ) {
+    throw new TypeError( "cosine-similarity()::invalid input argument. Second argument must be an array. Value: `" + y + "`." );
+  }
+  if ( arguments.length > 2 ) {
+    if ( !isFunction( clbk ) ) {
+      throw new TypeError( "cosine-similarity()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`." );
+    }
+  }
+  if ( x.length !== y.length ) {
+    throw new Error( "cosine-similarity()::invalid input argument. Input arrays must have the same length." );
+  }
+  if ( !x.length ) {
+    return null;
+  }
+  if ( clbk ) {
+    a = dot( x, y, clbk );
+    b = l2norm( x, partial( clbk, 0 ) );
+    c = l2norm( y, partial( clbk, 1 ) );
+  } else {
+    a = dot( x, y );
+    b = l2norm( x );
+    c = l2norm( y );
+  }
+  return a / ( b * c );
 }
 
 // posenet config
@@ -149,11 +149,12 @@ const imageScaleFactor = 1;
 let net;
 let video;
 let svg;
+const images = [];
 let poses;
 const poseKeys = {};
 let vptree;
 const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
-const context = canvas.getContext('2d');
+const context = canvas.getContext("2d");
 
 const videoWidth = 640; // 1280
 const videoHeight = 360; // 720
@@ -167,6 +168,18 @@ function cosineDistanceMatching(poseVector1, poseVector2) {
 async function setup() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
+  }
+
+  for (let i = 1; i <= 3; i += 1) {
+    const container = d3.select("body")
+      .append("div").attr("id", "image" + i);
+    const cImage = container.append("img");
+    const cSvg = container.append("svg");
+    images.push({
+      container,
+      image: cImage,
+      svg: cSvg,
+    });
   }
 
   const poseData = [];
@@ -192,8 +205,8 @@ async function setup() {
 
   canvas.width  = videoHeight;
   canvas.height = videoWidth;
-  context.translate(canvas.width/2,canvas.height/2);
-  context.rotate(-Math.PI/2);
+  context.translate(canvas.width / 2, canvas.height / 2);
+  context.rotate(-Math.PI / 2);
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
@@ -322,7 +335,7 @@ async function detectPose() {
 
   };
 
-  context.drawImage(video, -canvas.height/2, -canvas.width/2);
+  context.drawImage(video, -canvas.height / 2, -canvas.width / 2);
   imageElement.src = canvas.toDataURL("image/png");
 }
 

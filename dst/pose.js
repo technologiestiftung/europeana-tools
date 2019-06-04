@@ -1,9 +1,9 @@
 "use strict";
+// require("@tensorflow/tfjs-node");
 Object.defineProperty(exports, "__esModule", { value: true });
-require("@tensorflow/tfjs-node");
+const posenet = require("@tensorflow-models/posenet");
 const canvas_1 = require("canvas");
 const fs = require("fs");
-const posenet = require("@tensorflow-models/posenet");
 const xhr2 = require("xhr2");
 global.XMLHttpRequest = xhr2;
 const getData = (fileName) => {

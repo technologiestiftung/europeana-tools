@@ -14,10 +14,10 @@ client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL`)
     .then((result) => {
     Promise.all(result.rows.map((r) => checkImage(r.download, r.id)))
         .then((overall) => {
-        console.log("DONE", overall.length);
+        process.stdout.write("DONE" + overall.length + "\n");
     })
         .catch((err) => {
-        console.log("ERROR", err);
+        process.stdout.write("ERROR" + err + "\n");
     });
 });
 const checkImage = (imagePath, imageID) => {

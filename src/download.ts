@@ -10,9 +10,9 @@ client.connect();
 
 const download = (uri, filename, callback: () => void) => {
     request.head(uri, (err, res, body) => {
-      request(uri, {"family": 4})
+      request(uri, {family: 4})
       .on("error", (error) => {
-        //process.stdout.write("RequestError" + error + JSON.stringify(files[downloadCount]));
+        // process.stdout.write("RequestError" + error + JSON.stringify(files[downloadCount]));
         errorCount++;
         nextDownload();
       })
@@ -60,7 +60,10 @@ function nextDownload() {
   download(files[downloadCount][0], config.download + files[downloadCount][2] + "." + fileExt[fileExt.length - 1], nextDownload);
 }
 
-client.query(`SELECT value, europeana_id, id FROM metadata WHERE download IS NOT NULL AND image_problem = TRUE`) // lower(value) similar to '%(jpeg|jpg|bmp|png|tiff|gif)'
+client.query(`SELECT value, europeana_id, id \
+FROM metadata \
+WHERE download IS NOT NULL \
+AND image_problem = TRUE`) // lower(value) similar to '%(jpeg|jpg|bmp|png|tiff|gif)'
     .then((res) => {
       if (!existsSync(config.download)) {
         mkdirSync(config.download);

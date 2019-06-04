@@ -19,15 +19,15 @@ function sendReceive(data, id) {
         if (xhr.readyState === 4 && xhr.status === 200) {
             const json = JSON.parse(xhr.responseText);
             if ("image" in json) {
-                console.log(json.image);
+                process.stdout.write(json.image + "\n");
                 compute(json.image, json.id);
             }
             else {
-                console.log("Looks like we are done here!");
+                process.stdout.write("Looks like we are done here!\n");
             }
         }
         else {
-            console.log("SHIT");
+            process.stdout.write("SHIT\n");
         }
     };
     xhr.send(JSON.stringify({ data, id }));
@@ -51,8 +51,7 @@ function compute(src, id) {
             multiplier,
             outputStride,
         });
-        console.log(resp);
-        // window.requestAnimationFrame(function(){ sendReceive(resp, id);});
+        window.requestAnimationFrame(() => { sendReceive(resp, id); });
     });
 }
 function start() {

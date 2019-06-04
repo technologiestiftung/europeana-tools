@@ -30,7 +30,7 @@ const dot = (x, y, clbk) => {
             throw new TypeError("dot()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`.");
         }
     }
-    let len = x.length;
+    const len = x.length;
     let sum = 0;
     let i;
     if (len !== y.length) {
@@ -152,11 +152,12 @@ const imageScaleFactor = 1;
 let net;
 let video;
 let svg;
+const images = [];
 let poses;
 const poseKeys = {};
 let vptree;
 const canvas = document.querySelector("#canvas");
-const context = canvas.getContext('2d');
+const context = canvas.getContext("2d");
 const videoWidth = 640; // 1280
 const videoHeight = 360; // 720
 function cosineDistanceMatching(poseVector1, poseVector2) {
@@ -168,6 +169,17 @@ function setup() {
     return __awaiter(this, void 0, void 0, function* () {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
+        }
+        for (let i = 1; i <= 3; i += 1) {
+            const container = d3.select("body")
+                .append("div").attr("id", "image" + i);
+            const cImage = container.append("img");
+            const cSvg = container.append("svg");
+            images.push({
+                container,
+                image: cImage,
+                svg: cSvg,
+            });
         }
         const poseData = [];
         poses.forEach((p, pi) => {

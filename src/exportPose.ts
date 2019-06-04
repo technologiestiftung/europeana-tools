@@ -14,10 +14,15 @@ client.query("SELECT id, download, compress_pose, abs_pose FROM metadata WHERE h
     .then((data) => {
         data.rows.forEach((row, ri) => {
             // TODO: If file is too large, maybe reduce the abs_pose size
-            wstream.write(((ri>0)?",":"") + JSON.stringify({ id: row.id, c: ri, image: row.download, poses: JSON.parse(row.compress_pose), abs_poses: row.abs_pose }) + "\n");
+            wstream.write(((ri > 0) ? "," : "") + JSON.stringify({
+                abs_poses: row.abs_pose,
+                c: ri,
+                id: row.id,
+                image: row.download,
+                poses: JSON.parse(row.compress_pose),
+            }) + "\n");
         });
         wstream.write("]");
         wstream.end();
-        
         process.exit();
     });

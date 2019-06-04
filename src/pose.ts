@@ -1,9 +1,9 @@
-require("@tensorflow/tfjs-node");
+// require("@tensorflow/tfjs-node");
 
+import * as posenet from "@tensorflow-models/posenet";
 import {createCanvas, Image} from "canvas";
 import * as fs from "fs";
 import * as fetch from "node-fetch";
-import * as posenet from "@tensorflow-models/posenet";
 import * as tf from "@tensorflow/tfjs";
 import * as xhr2 from "xhr2";
 (global as any).XMLHttpRequest = xhr2;

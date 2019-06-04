@@ -22,7 +22,7 @@ client.query(`SELECT id, download, value FROM metadata WHERE download IS NOT NUL
         asyncForEach(result.rows, async (r) => {
             await checkImage(r.download, r.id, r.value);
         });
-       
+
     });
 
 const checkImage = (imagePath: string, imageID: number, imageLocation: string) => {
@@ -32,26 +32,26 @@ const checkImage = (imagePath: string, imageID: number, imageLocation: string) =
                 const re = new RegExp("src=\"([^\"]+)\"");
                 const imageUri = file.match(re)[1];
 
-                console.log(imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri);
+                process.stdout.write(imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri + "\n");
 
                 return new Promise((resolve, reject) => {
                     request
                         .get({
                             encoding: null,
-                            //family: 4,
+                            // family: 4,
                             uri: imageLocation.substr(0, imageLocation.lastIndexOf("/")) + imageUri,
                         })
                         .on("error", (err) => {
-                            console.log(imagePath, err);
+                            process.stdout.write(imagePath + err + "\n");
                             reject();
                         })
                         .pipe(fs.createWriteStream(imagePath + ".bk.jpg"))
                         .on("close", () => {
-                            console.log(imagePath);
+                            process.stdout.write(imagePath + "\n");
                             resolve();
                         })
                         .on("error", (err) => {
-                            console.log(imagePath, err);
+                            process.stdout.write(imagePath + err + "\n");
                             reject();
                         });
                 });

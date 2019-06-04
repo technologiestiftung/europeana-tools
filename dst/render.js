@@ -146,6 +146,6 @@ gemacht werden kann.", 639 * 3, lastY + 70, 145 * 3, 35);
     wrapText(ctx, "https://kultur-b-digital.de", 639 * 3, lastY, 145 * 3, 35);
     const stream = canvas.createPNGStream();
     stream.pipe(out);
-    out.on("finish", () => console.log("The PNG file was created."));
+    out.on("finish", () => process.stdout.write("The PNG file was created.\n"));
 });
 //# sourceMappingURL=render.js.map

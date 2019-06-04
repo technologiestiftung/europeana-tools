@@ -14,16 +14,16 @@ client.query(`SELECT id, download, value FROM metadata WHERE download IS NOT NUL
                 const stats = fs.statSync(r.download);
                 const statsNew = fs.statSync(r.download + ".bk.jpg");
                 if (statsNew.size > stats.size) {
-                    console.log(r.id);
+                    process.stdout.write(r.id + "\n");
                     const oldContent = fs.readFileSync(r.download);
                     client.query(`UPDATE metadata SET image_comment = '${oldContent}' WHERE id = ${r.id}`);
                     fs.renameSync(r.download + ".bk.jpg", r.download);
 
                     fs.unlink(r.download + ".bk.jpg", (err) => {
-                        process.stdout.write(JSON.stringify(err));
+                        process.stdout.write(JSON.stringify(err) + "\n");
                     });
                 }
             }
         });
-       
+
     });
