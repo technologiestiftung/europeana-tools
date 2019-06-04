@@ -1,6 +1,10 @@
 import * as posenet from "@tensorflow-models/posenet";
 import * as tf from "@tensorflow/tfjs";
 import * as d3 from "d3";
+
+// declare var d3: any;
+// declare var posenet: any;
+
 import * as VPTreeFactory from "vptree";
 
 // import * as similarity from "compute-cosine-similarity";
@@ -165,6 +169,9 @@ function cosineDistanceMatching(poseVector1, poseVector2) {
   return Math.sqrt(distance);
 }
 
+let state = 1;
+let keyStart;
+
 async function setup() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
@@ -220,8 +227,27 @@ async function setup() {
   video.srcObject = stream;
   video.onloadedmetadata = () => {
     video.play();
-    detectPose();
+    // detectPose();
   };
+
+  document.addEventListener("keydown", keyDown);
+  document.addEventListener("keyup", keyUp);
+}
+
+function keyDown(e) {
+  if (e.key === "4") {
+    keyStart = Date.now();
+  }  
+}
+
+function keyUp(e) {
+  if (e.key === "4") {
+    const duration = Date.now() - keyStart;
+    console.log(duration);
+    if (state === 1) {
+
+    }
+  }
 }
 
 const getPart = (arr, key) => {
