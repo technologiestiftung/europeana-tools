@@ -53,7 +53,10 @@ function compute(src, id) {
     const srcParts = src.split("europeana_downloads_complete/");
     imageElement.src = "http://127.0.0.1:9000/" + srcParts[srcParts.length - 1];
     imageElement.crossOrigin = "Anonymous";
+    const emptyImageTimeOut = setTimeout(() => { window.requestAnimationFrame(function(){ console.log("canceled"); sendReceive([], id);}); }, 5000);
     imageElement.onload = async () => {
+
+        clearTimeout(emptyImageTimeOut);
 
         if(imageElement.height !== imageSize || imageElement.width !== imageSize) {
             const imageScaleFactor = (imageElement.height > imageElement.width) ? imageSize / imageElement.height : imageSize / imageElement.width;

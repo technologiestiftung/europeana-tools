@@ -36,8 +36,10 @@ app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     res.setHeader("Content-Type", "text/plain");
     if ("body" in req && "data" in req.body) {
         if (req.body.data.length >= 1) {
-            const rel = JSON.parse(JSON.stringify(req.body.data));
-            yield client.query(`UPDATE metadata SET mobilenet_done = TRUE, mobilenet = '${JSON.stringify(rel)}' WHERE id = ${req.body.id}`);
+            let rel = JSON.stringify(req.body.data);
+            rel = rel.split("'").join("''");
+            console.log(`UPDATE metadata SET mobilenet_done = TRUE, mobilenet = '${rel}' WHERE id = ${req.body.id}`);
+            yield client.query(`UPDATE metadata SET mobilenet_done = TRUE, mobilenet = '${rel}' WHERE id = ${req.body.id}`);
         }
         else if (req.body.id !== 0 && req.body.id !== "0") {
             yield client.query(`UPDATE metadata SET mobilenet_done = TRUE WHERE id = ${req.body.id}`);
@@ -47,6 +49,7 @@ app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     WHERE download IS NOT NULL \
     AND image_problem IS NULL \
     AND mobilenet_done IS NULL \
+    AND has_pose IS NOT NULL \
     AND id > ${req.body.id} \
     ORDER BY id ASC LIMIT 1`);
         if ("rows" in result && result.rows.length >= 1) {

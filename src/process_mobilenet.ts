@@ -34,9 +34,12 @@ app.use(async (req, res) => {
   if ("body" in req && "data" in req.body) {
     if (req.body.data.length >= 1) {
 
-      const rel = JSON.parse(JSON.stringify(req.body.data));
+      let rel = JSON.stringify(req.body.data);
+      rel = rel.split("'").join("''");
 
-      await client.query(`UPDATE metadata SET mobilenet_done = TRUE, mobilenet = '${JSON.stringify(rel)}' WHERE id = ${req.body.id}`);
+      console.log(`UPDATE metadata SET mobilenet_done = TRUE, mobilenet = '${rel}' WHERE id = ${req.body.id}`);
+
+      await client.query(`UPDATE metadata SET mobilenet_done = TRUE, mobilenet = '${rel}' WHERE id = ${req.body.id}`);
     } else if (req.body.id !== 0 && req.body.id !== "0") {
       await client.query(`UPDATE metadata SET mobilenet_done = TRUE WHERE id = ${req.body.id}`);
     }
@@ -46,6 +49,7 @@ app.use(async (req, res) => {
     WHERE download IS NOT NULL \
     AND image_problem IS NULL \
     AND mobilenet_done IS NULL \
+    AND has_pose IS NOT NULL \
     AND id > ${req.body.id} \
     ORDER BY id ASC LIMIT 1`);
     if ("rows" in result && result.rows.length >= 1) {

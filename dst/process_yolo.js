@@ -37,7 +37,7 @@ app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     if ("body" in req && "data" in req.body) {
         if (req.body.data.length >= 1) {
             const rel = JSON.parse(JSON.stringify(req.body.data));
-            let hasPerson = "NULL";
+            let hasPerson = "FALSE";
             rel.forEach((r) => {
                 if (r._className.toLowerCase() === "person") {
                     hasPerson = "TRUE";
@@ -56,6 +56,7 @@ app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     FROM metadata \
     WHERE download IS NOT NULL \
     AND image_problem IS NULL \
+    AND has_pose IS NOT NULL \
     AND yolo_done IS NULL \
     AND id > ${req.body.id} \
     ORDER BY id ASC LIMIT 1`);

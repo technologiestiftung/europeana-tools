@@ -35,7 +35,7 @@ app.use(async (req, res) => {
     if (req.body.data.length >= 1) {
 
       const rel = JSON.parse(JSON.stringify(req.body.data));
-      let hasPerson = "NULL";
+      let hasPerson = "FALSE";
 
       rel.forEach((r) => {
         if (r.class.toLowerCase() === "person") {
@@ -56,6 +56,7 @@ app.use(async (req, res) => {
     FROM metadata \
     WHERE download IS NOT NULL \
     AND image_problem IS NULL \
+    AND has_pose IS NOT NULL \
     AND coco_done IS NULL \
     AND id > ${req.body.id} \
     ORDER BY id ASC LIMIT 1`);
