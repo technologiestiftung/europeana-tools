@@ -51,16 +51,19 @@ function nextDownload() {
 
   const fileExt = files[downloadCount][0].split(".");
 
-  download(files[downloadCount][0], config.download + files[downloadCount][2] + "." + fileExt[fileExt.length - 1], nextDownload);
+  const re = new RegExp("src=\"([^\"]+)\"");
+  const imageUri = files[downloadCount][3].match(re)[1];
+
+  download(files[downloadCount][0].substr(0, files[downloadCount][0].lastIndexOf("/")) + imageUri, config.download + files[downloadCount][2] + "." + fileExt[fileExt.length - 1], nextDownload);
 }
 
-client.query(`SELECT value, europeana_id, id FROM metadata WHERE has_pose IS NOT NULL AND download IS NOT NULL AND download_again IS NULL AND image_problem IS NULL AND image_comment IS NULL`)
+client.query(`SELECT value, europeana_id, id, image_comment FROM metadata WHERE has_pose IS NOT NULL AND download IS NOT NULL AND download_again IS NULL AND image_problem IS NULL AND image_comment IS NOT NULL`)
     .then((res) => {
       if (!existsSync(config.download)) {
         mkdirSync(config.download);
       }
 
-      files = res.rows.map((r) => [r.value, r.europeana_id, r.id]);
+      files = res.rows.map((r) => [r.value, r.europeana_id, r.id, r.image_comment]);
 
       if (process.argv.indexOf("--recover") > 1) {
         client.query(`SELECT value FROM temp WHERE key = 'downloadCount' ORDER BY id DESC LIMIT 1`)
