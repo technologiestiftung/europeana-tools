@@ -1,7 +1,7 @@
 import * as ipp from "ipp";
 import * as PDFDocument from "pdfkit";
 
-const doc = new PDFDocument;
+const doc = new PDFDocument();
 doc.text("Hello World");
 
 const buffers = [];
@@ -18,21 +18,21 @@ doc.on("end", () => {
   };
 
   ipp.request("http://192.168.1.93:631", {
-    "operation":"Get-Printer-Attributes",
+    "operation": "Get-Printer-Attributes",
     "operation-attributes-tag": {
       "attributes-charset": "utf-8",
       "attributes-natural-language": "en",
-      "printer-uri": "http://192.168.1.93:631"
-    }
+      "printer-uri": "http://192.168.1.93:631",
+    },
   }, (err, res) => {
-    if(err){
-      return console.log(err);
+    if (err) {
+      return process.stdout.write(err + "\n");
     }
-    console.log(JSON.stringify(res,null,2));
+    process.stdout.write(JSON.stringify(res, null, 2) + "\n");
   });
 
   printer.execute("Print-Job", msg, (err, res) => {
-    console.log(res);
+    process.stdout.write(res + "\n");
   });
 });
 doc.end();

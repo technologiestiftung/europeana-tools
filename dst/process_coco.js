@@ -34,7 +34,6 @@ app.use((req, res, next) => {
 });
 app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     res.setHeader("Content-Type", "text/plain");
-    console.log(req.body);
     if ("body" in req && "data" in req.body) {
         if (req.body.data.length >= 1) {
             const rel = JSON.parse(JSON.stringify(req.body.data));
@@ -44,12 +43,22 @@ app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
                     hasPerson = "TRUE";
                 }
             });
-            yield client.query(`UPDATE metadata SET coco_done = TRUE, coco = '${JSON.stringify(rel)}', coco_has_person = '${hasPerson}' WHERE id = ${req.body.id}`);
+            yield client.query(`UPDATE metadata \
+      SET coco_done = TRUE, \
+      coco = '${JSON.stringify(rel)}', \
+      coco_has_person = '${hasPerson}' \
+      WHERE id = ${req.body.id}`);
         }
         else if (req.body.id !== 0 && req.body.id !== "0") {
             yield client.query(`UPDATE metadata SET coco_done = TRUE WHERE id = ${req.body.id}`);
         }
-        const result = yield client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND coco_done IS NULL AND id > ${req.body.id} ORDER BY id ASC LIMIT 1`);
+        const result = yield client.query(`SELECT id, download \
+    FROM metadata \
+    WHERE download IS NOT NULL \
+    AND image_problem IS NULL \
+    AND coco_done IS NULL \
+    AND id > ${req.body.id} \
+    ORDER BY id ASC LIMIT 1`);
         if ("rows" in result && result.rows.length >= 1) {
             res.end(JSON.stringify({ id: result.rows[0].id, image: result.rows[0].download }));
         }
@@ -62,6 +71,6 @@ app.use((req, res) => __awaiter(this, void 0, void 0, function* () {
     }
 }));
 app.listen(5679, () => {
-    console.log("Example app listening on port 5679!");
+    process.stdout.write("Example app listening on port 5679!\n");
 });
 //# sourceMappingURL=process_coco.js.map

@@ -10,6 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const posenet = require("@tensorflow-models/posenet");
 const d3 = require("d3");
+// declare var d3: any;
+// declare var posenet: any;
 const VPTreeFactory = require("vptree");
 // import * as similarity from "compute-cosine-similarity";
 const isFunction = (value) => {
@@ -30,7 +32,7 @@ const dot = (x, y, clbk) => {
             throw new TypeError("dot()::invalid input argument. Accessor must be a function. Value: `" + clbk + "`.");
         }
     }
-    let len = x.length;
+    const len = x.length;
     let sum = 0;
     let i;
     if (len !== y.length) {
@@ -152,11 +154,12 @@ const imageScaleFactor = 1;
 let net;
 let video;
 let svg;
+const images = [];
 let poses;
 const poseKeys = {};
 let vptree;
 const canvas = document.querySelector("#canvas");
-const context = canvas.getContext('2d');
+const context = canvas.getContext("2d");
 const videoWidth = 640; // 1280
 const videoHeight = 360; // 720
 function cosineDistanceMatching(poseVector1, poseVector2) {
@@ -164,10 +167,23 @@ function cosineDistanceMatching(poseVector1, poseVector2) {
     const distance = 2 * (1 - cosineSimilarity);
     return Math.sqrt(distance);
 }
+let state = 1;
+let keyStart;
 function setup() {
     return __awaiter(this, void 0, void 0, function* () {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
+        }
+        for (let i = 1; i <= 3; i += 1) {
+            const container = d3.select("body")
+                .append("div").attr("id", "image" + i);
+            const cImage = container.append("img");
+            const cSvg = container.append("svg");
+            images.push({
+                container,
+                image: cImage,
+                svg: cSvg,
+            });
         }
         const poseData = [];
         poses.forEach((p, pi) => {
@@ -200,9 +216,24 @@ function setup() {
         video.srcObject = stream;
         video.onloadedmetadata = () => {
             video.play();
-            detectPose();
+            // detectPose();
         };
+        document.addEventListener("keydown", keyDown);
+        document.addEventListener("keyup", keyUp);
     });
+}
+function keyDown(e) {
+    if (e.key === "4") {
+        keyStart = Date.now();
+    }
+}
+function keyUp(e) {
+    if (e.key === "4") {
+        const duration = Date.now() - keyStart;
+        console.log(duration);
+        if (state === 1) {
+        }
+    }
 }
 const getPart = (arr, key) => {
     let r = { x: 0, y: 0 };

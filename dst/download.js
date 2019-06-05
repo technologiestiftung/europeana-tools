@@ -9,9 +9,9 @@ const client = new pg_1.Client(config.db);
 client.connect();
 const download = (uri, filename, callback) => {
     request.head(uri, (err, res, body) => {
-        request(uri, { "family": 4 })
+        request(uri, { family: 4 })
             .on("error", (error) => {
-            //process.stdout.write("RequestError" + error + JSON.stringify(files[downloadCount]));
+            // process.stdout.write("RequestError" + error + JSON.stringify(files[downloadCount]));
             errorCount++;
             nextDownload();
         })
@@ -52,7 +52,10 @@ function nextDownload() {
     const fileExt = files[downloadCount][0].split(".");
     download(files[downloadCount][0], config.download + files[downloadCount][2] + "." + fileExt[fileExt.length - 1], nextDownload);
 }
-client.query(`SELECT value, europeana_id, id FROM metadata WHERE download IS NOT NULL AND image_problem = TRUE`) // lower(value) similar to '%(jpeg|jpg|bmp|png|tiff|gif)'
+client.query(`SELECT value, europeana_id, id \
+FROM metadata \
+WHERE download IS NOT NULL \
+AND image_problem = TRUE`) // lower(value) similar to '%(jpeg|jpg|bmp|png|tiff|gif)'
     .then((res) => {
     if (!fs_1.existsSync(config.download)) {
         fs_1.mkdirSync(config.download);

@@ -54,7 +54,12 @@ function nextDownload() {
   download(files[downloadCount][0], config.download + files[downloadCount][2] + "." + fileExt[fileExt.length - 1], nextDownload);
 }
 
-client.query(`SELECT value, europeana_id, id FROM metadata WHERE has_pose IS NOT NULL AND download IS NOT NULL AND download_again IS NULL AND image_problem IS NULL AND image_comment IS NULL`)
+client.query(`SELECT value, europeana_id, id \
+FROM metadata \
+WHERE download IS NOT NULL \
+AND download_again IS NULL \
+AND image_problem IS NULL \
+AND image_comment IS NULL`)
     .then((res) => {
       if (!existsSync(config.download)) {
         mkdirSync(config.download);
