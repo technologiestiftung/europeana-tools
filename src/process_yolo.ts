@@ -49,7 +49,7 @@ app.use(async (req, res) => {
       await client.query(`UPDATE metadata SET yolo_done = TRUE WHERE id = ${req.body.id}`);
     }
 
-    const result = await client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL AND image_problem IS NULL AND yolo_done IS NULL AND id > ${req.body.id} ORDER BY id ASC LIMIT 1`);
+    const result = await client.query(`SELECT id, download FROM metadata WHERE download IS NOT NULL AND has_pose IS NOT NULL AND image_problem IS NULL AND yolo_done IS NULL AND id > ${req.body.id} ORDER BY id ASC LIMIT 1`);
     if ("rows" in result && result.rows.length >= 1) {
       res.end(JSON.stringify({id: result.rows[0].id, image: result.rows[0].download}));
     } else {
