@@ -179,6 +179,14 @@ let imageMaxWidth = 0;
 const imageSpace = 20;
 let realVideoWidth;
 
+let currentPose;
+let currentPoseId;
+let currentPoseTitle;
+let currentPoseMuseum;
+let currentPoseDate;
+let currentVideo;
+let currentVideoPose;
+
 async function setup() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
@@ -257,18 +265,47 @@ async function setup() {
 function keyDown(e) {
   if (e.key === "4") {
     keyStart = Date.now();
+    console.log("key down");
   }
 }
 
 function keyUp(e) {
   if (e.key === "4") {
     const duration = Date.now() - keyStart;
-    console.log(duration);
+    console.log("key up", duration);
     if (state === 1) {
       state = 2;
+      console.log("state 2");
     } else if (duration > 1000) {
       // send print job
-      console.log("print");
+      console.log("print", "state 1");
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://localhost:5656/print", true);
+      xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+              console.log(JSON.parse(xhr.responseText));
+          } else if ( xhr.status === 200) {
+              console.log("OPTIONS RESPONSE");
+          } else {
+              console.log("SHIT");
+          }
+      };
+
+      xhr.send(JSON.stringify({
+        currentVideo,
+        date: currentPoseDate,
+        id: currentPoseId,
+        museum: currentPoseMuseum,
+        pose1: currentVideoPose,
+        pose2: currentPose,
+        title: currentPoseTitle,
+      }));
+
+      state = 1;
+    } else {
+      console.log("state 1");
       state = 1;
     }
   }
@@ -306,131 +343,153 @@ const pairs = [
   ["rightKnee", "rightAnkle"],
 ];
 
+let poseTime = Date.now();
+
 async function detectPose() {
 
-  const imageElement = new Image();
-  imageElement.crossOrigin = "Anonymous";
-  imageElement.onload = async () => {
+  if (state === 1) {
 
-    // estimateSinglePose
-    const resp = await net.estimateMultiplePoses(imageElement, imageScaleFactor, flipHorizontal, outputStride);
+    const imageElement = new Image();
+    imageElement.crossOrigin = "Anonymous";
+    imageElement.onload = async () => {
 
-    let highestScore = -Number.MAX_VALUE;
-    let highestPose;
+      // estimateSinglePose
+      const resp = await net.estimateMultiplePoses(imageElement, imageScaleFactor, flipHorizontal, outputStride);
 
-    // remove poses with low probability
-    for (let i = resp.length - 1; i >= 0; i--) {
-        if (resp[i].score < 0.1) {
-            resp.splice(i, 1);
-        } else {
-          if (resp[i].score > highestScore) {
-            highestScore = resp[i].score;
-            highestPose = resp[i];
+      let highestScore = -Number.MAX_VALUE;
+      let highestPose;
+
+      // remove poses with low probability
+      for (let i = resp.length - 1; i >= 0; i--) {
+          if (resp[i].score < 0.1) {
+              resp.splice(i, 1);
+          } else {
+            if (resp[i].score > highestScore) {
+              highestScore = resp[i].score;
+              highestPose = resp[i];
+            }
+            resp[i].pairs = [];
+            pairs.forEach((p) => {
+              const p1 = getPart(resp[i].keypoints, p[0]);
+              const p2 = getPart(resp[i].keypoints, p[1]);
+              resp[i].pairs.push([p1.x, p1.y, p2.x, p2.y]);
+            });
           }
-          resp[i].pairs = [];
-          pairs.forEach((p) => {
-            const p1 = getPart(resp[i].keypoints, p[0]);
-            const p2 = getPart(resp[i].keypoints, p[1]);
-            resp[i].pairs.push([p1.x, p1.y, p2.x, p2.y]);
-          });
-        }
-    }
-
-    if (resp.length > 0 && highestScore > 0.5) {
-
-      const cBody = [];
-
-      let minX = Number.MAX_VALUE;
-      let minY = Number.MAX_VALUE;
-      let maxX = -Number.MAX_VALUE;
-      let maxY = -Number.MAX_VALUE;
-      highestPose.keypoints.forEach((point) => {
-        if (point.position.x > maxX) { maxX = point.position.x; }
-        if (point.position.y > maxY) { maxY = point.position.y; }
-        if (point.position.x < minX) { minX = point.position.x; }
-        if (point.position.y < minY) { minY = point.position.y; }
-      });
-
-      const width = maxX - minX;
-      const height = maxY - minY;
-
-      highestPose.keypoints.forEach((point) => {
-        cBody.push((point.position.x - minX) / width);
-        cBody.push((point.position.y - minY) / height);
-      });
-
-      const nearestImage = vptree.search(cBody); // include n > number of similar samples
-
-      // ToDo check if the image was already shown
-      const result = poses[poseKeys[nearestImage[0].i][0]];
-      images[0].image.attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
-
-      let outputHeight = windowHeight;
-      let outputWidth = imageMaxWidth;
-
-      if (outputWidth / result.width * result.height > outputHeight) {
-        outputWidth = outputHeight / result.height * result.width;
       }
 
-      outputHeight = outputWidth / result.width * result.height;
+      if (resp.length > 0 && highestScore > 0.5) {
 
-      images[0].container
-        .style("left", realVideoWidth + imageSpace + (imageMaxWidth - outputWidth) / 2 + "px")
-        .style("top", (windowHeight - outputHeight) / 2 + "px")
-        .style("width", outputWidth + "px")
-        .style("height", "auto");
+        const cBody = [];
 
-      const imageSize = 700;
-      const svgScaleFactor = (result.height > result.width) ? imageSize / result.height : imageSize / result.width;
-      images[0].svg.attr("viewBox", `0 0 ${result.width * svgScaleFactor}  ${result.height * svgScaleFactor}`);
-      images[0].svg.selectAll("*").remove();
-      console.log(result, poseKeys[nearestImage[0].i]);
-      const resultKeypoints = result.abs_poses[poseKeys[nearestImage[0].i][1]].keypoints;
-      images[0].svg.selectAll("circle").data(resultKeypoints).enter().append("circle")
-        .attr("cx", (d) => d.position.x)
-        .attr("cy", (d) => d.position.y)
-        .attr("r", (d) => 5)
-        .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+        let minX = Number.MAX_VALUE;
+        let minY = Number.MAX_VALUE;
+        let maxX = -Number.MAX_VALUE;
+        let maxY = -Number.MAX_VALUE;
+        highestPose.keypoints.forEach((point) => {
+          if (point.position.x > maxX) { maxX = point.position.x; }
+          if (point.position.y > maxY) { maxY = point.position.y; }
+          if (point.position.x < minX) { minX = point.position.x; }
+          if (point.position.y < minY) { minY = point.position.y; }
+        });
 
-      result.pairs = [];
-      pairs.forEach((p) => {
-        const p1 = getPart(resultKeypoints, p[0]);
-        const p2 = getPart(resultKeypoints, p[1]);
-        result.pairs.push([p1.x, p1.y, p2.x, p2.y]);
-      });
+        const width = maxX - minX;
+        const height = maxY - minY;
 
-      images[0].svg.selectAll("line").data(result.pairs).enter().append("line")
-        .attr("x1", (d) => d[0])
-        .attr("y1", (d) => d[1])
-        .attr("x2", (d) => d[2])
-        .attr("y2", (d) => d[3]);
+        highestPose.keypoints.forEach((point) => {
+          cBody.push((point.position.x - minX) / width);
+          cBody.push((point.position.y - minY) / height);
+        });
 
-      svg.selectAll("*").remove();
+        const nowTime = Date.now();
 
-      // [highestPose] > resp
+        if (nowTime - poseTime > 3000) {
+          poseTime = Date.now();
 
-      const groups = svg.selectAll("g").data([highestPose]).enter().append("g");
-      groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
-        .attr("cx", (d) => d.position.x)
-        .attr("cy", (d) => d.position.y)
-        .attr("r", (d) => 5)
-        .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+          const nearestImage = vptree.search(cBody); // include n > number of similar samples
 
-      groups.selectAll("line").data((d) => d.pairs).enter().append("line")
-        .attr("x1", (d) => d[0])
-        .attr("y1", (d) => d[1])
-        .attr("x2", (d) => d[2])
-        .attr("y2", (d) => d[3]);
-    } else {
-      svg.selectAll("*").remove();
-    }
+          // ToDo check if the image was already shown
+          const result = poses[poseKeys[nearestImage[0].i][0]];
+          images[0].image.attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
 
-    window.requestAnimationFrame(detectPose);
+          let outputHeight = windowHeight;
+          let outputWidth = imageMaxWidth;
 
-  };
+          if (outputWidth / result.width * result.height > outputHeight) {
+            outputWidth = outputHeight / result.height * result.width;
+          }
 
-  context.drawImage(video, -canvas.height / 2, -canvas.width / 2);
-  imageElement.src = canvas.toDataURL("image/png");
+          outputHeight = outputWidth / result.width * result.height;
+
+          images[0].container
+            .style("left", realVideoWidth + imageSpace + (imageMaxWidth - outputWidth) / 2 + "px")
+            .style("top", (windowHeight - outputHeight) / 2 + "px")
+            .style("width", outputWidth + "px")
+            .style("height", "auto");
+
+          const imageSize = 700;
+          const svgScaleFactor = (result.height > result.width) ? imageSize / result.height : imageSize / result.width;
+          images[0].svg.attr("viewBox", `0 0 ${result.width * svgScaleFactor}  ${result.height * svgScaleFactor}`);
+          images[0].svg.selectAll("*").remove();
+          const resultKeypoints = result.abs_poses[poseKeys[nearestImage[0].i][1]].keypoints;
+          images[0].svg.selectAll("circle").data(resultKeypoints).enter().append("circle")
+            .attr("cx", (d) => d.position.x)
+            .attr("cy", (d) => d.position.y)
+            .attr("r", (d) => 5)
+            .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+
+          currentPoseId = result.id;
+          currentPoseTitle = result.title;
+          currentPoseMuseum = result.museum;
+          currentPoseDate = result.date;
+          currentPose = result.abs_poses[poseKeys[nearestImage[0].i][1]];
+          currentVideo = imageElement.src;
+          currentVideoPose = highestPose;
+
+          result.pairs = [];
+          pairs.forEach((p) => {
+            const p1 = getPart(resultKeypoints, p[0]);
+            const p2 = getPart(resultKeypoints, p[1]);
+            result.pairs.push([p1.x, p1.y, p2.x, p2.y]);
+          });
+
+          images[0].svg.selectAll("line").data(result.pairs).enter().append("line")
+            .attr("x1", (d) => d[0])
+            .attr("y1", (d) => d[1])
+            .attr("x2", (d) => d[2])
+            .attr("y2", (d) => d[3]);
+
+        }
+
+        svg.selectAll("*").remove();
+
+        // [highestPose] > resp
+
+        const groups = svg.selectAll("g").data([highestPose]).enter().append("g");
+        groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
+          .attr("cx", (d) => d.position.x)
+          .attr("cy", (d) => d.position.y)
+          .attr("r", (d) => 5)
+          .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+
+        groups.selectAll("line").data((d) => d.pairs).enter().append("line")
+          .attr("x1", (d) => d[0])
+          .attr("y1", (d) => d[1])
+          .attr("x2", (d) => d[2])
+          .attr("y2", (d) => d[3]);
+      } else {
+        svg.selectAll("*").remove();
+      }
+
+      window.requestAnimationFrame(detectPose);
+
+    };
+
+    context.drawImage(video, -canvas.height / 2, -canvas.width / 2);
+    imageElement.src = canvas.toDataURL("image/png");
+  } else {
+    d3.select("#image").attr("src", currentVideo);
+    // Draw poses
+  }
 }
 
 d3.json("poses.json")
