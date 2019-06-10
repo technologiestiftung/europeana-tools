@@ -212,8 +212,10 @@ async function setup() {
 
   canvas.width  = videoHeight;
   canvas.height = videoWidth;
+
   context.translate(canvas.width / 2, canvas.height / 2);
   context.rotate(-Math.PI / 2);
+  context.scale(1, -1);
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
@@ -227,7 +229,7 @@ async function setup() {
   video.srcObject = stream;
   video.onloadedmetadata = () => {
     video.play();
-    // detectPose();
+    detectPose();
   };
 
   document.addEventListener("keydown", keyDown);
@@ -237,7 +239,7 @@ async function setup() {
 function keyDown(e) {
   if (e.key === "4") {
     keyStart = Date.now();
-  }  
+  }
 }
 
 function keyUp(e) {
@@ -245,7 +247,11 @@ function keyUp(e) {
     const duration = Date.now() - keyStart;
     console.log(duration);
     if (state === 1) {
-
+      state = 2;
+    } else if (duration > 1000) {
+      // send print job
+      console.log("print");
+      state = 1;
     }
   }
 }
@@ -312,7 +318,7 @@ async function detectPose() {
         }
     }
 
-    if (resp.length > 0) {
+    if (resp.length > 0 && highestScore > 0.5) {
 
       const cBody = [];
 
@@ -339,11 +345,13 @@ async function detectPose() {
 
       // ToDo check if the image was already shown
       const result = poses[poseKeys[nearestImage[0].i]];
-      d3.select("#image").attr("src", "http://localhost:9000" + result.image.split("europeana_downloads_complete")[1]);
+      d3.select("#image1 img").attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
 
       svg.selectAll("*").remove();
 
-      const groups = svg.selectAll("g").data(resp).enter().append("g");
+      // [highestPose] > resp
+
+      const groups = svg.selectAll("g").data([highestPose]).enter().append("g");
       groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
         .attr("cx", (d) => d.position.x)
         .attr("cy", (d) => d.position.y)
@@ -355,6 +363,8 @@ async function detectPose() {
         .attr("y1", (d) => d[1])
         .attr("x2", (d) => d[2])
         .attr("y2", (d) => d[3]);
+    } else {
+      svg.selectAll("*").remove();
     }
 
     window.requestAnimationFrame(detectPose);

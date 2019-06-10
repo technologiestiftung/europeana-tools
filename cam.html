@@ -2,6 +2,13 @@
 <head>
 <title>Process</title>
 <style>
+    body, html{
+        margin:0;
+        padding:0;
+        border:none;
+        background:black;
+    }
+
     video, svg, canvas, #image{
         position:absolute;
         top:0;
@@ -10,11 +17,11 @@
 
     video{
         transform-origin: 0 100%;
-        transform: translate(360px,280px) rotate(-90deg);        
+        transform: translate(360px,280px) rotate(-90deg) scaleY(-1) translate(0px,360px);
     }
 
     canvas {
-        left: 720px;
+        display:none;
     }
 
     #image{
@@ -31,6 +38,17 @@
 
     line{
         stroke:white;
+    }
+
+    #image1{
+        position: absolute;
+        left: 400px;
+        width: 800px;
+    }
+    
+    #image1 img{
+        width:100%;
+        height:auto;
     }
 </style>
 </head>
