@@ -7,6 +7,7 @@
         padding:0;
         border:none;
         background:black;
+        overflow:hidden;
     }
 
     video, svg, canvas, #image{
@@ -18,6 +19,7 @@
     video{
         transform-origin: 0 100%;
         transform: translate(360px,280px) rotate(-90deg) scaleY(-1) translate(0px,360px);
+        top:35px;
     }
 
     canvas {
@@ -46,9 +48,14 @@
         width: 800px;
     }
     
-    #image1 img{
+    #image1 img, #image2 img, #image3 img{
         width:100%;
         height:auto;
+    }
+
+    #image1 svg, #image2 svg, #image3 svg{
+        width:100%;
+        height:100%;
     }
 </style>
 </head>

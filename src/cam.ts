@@ -163,6 +163,9 @@ const context = canvas.getContext("2d");
 const videoWidth = 640; // 1280
 const videoHeight = 360; // 720
 
+const windowHeight = window.innerHeight;
+const windowWidth = window.innerWidth;
+
 function cosineDistanceMatching(poseVector1, poseVector2) {
   const cosineSimilarity = similarity(poseVector1, poseVector2);
   const distance = 2 * (1 - cosineSimilarity);
@@ -171,17 +174,54 @@ function cosineDistanceMatching(poseVector1, poseVector2) {
 
 let state = 1;
 let keyStart;
+const imageCount = 1;
+let imageMaxWidth = 0;
+const imageSpace = 20;
+let realVideoWidth;
 
 async function setup() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
   }
 
-  for (let i = 1; i <= 3; i += 1) {
+  const poseData = [];
+  poses.forEach((p, pi) => {
+    p.poses.forEach((pp, ppi) => {
+      poseData.push(pp);
+      poseKeys[poseData.length - 1] = [pi, ppi];
+    });
+  });
+
+  vptree = VPTreeFactory.build(poseData, cosineDistanceMatching);
+
+  realVideoWidth = windowHeight / videoWidth * videoHeight;
+
+  svg = d3.select("body").append("svg")
+    .attr("width", videoHeight)
+    .attr("height", videoWidth)
+    .style("height", windowHeight + "px")
+    .style("width", realVideoWidth + "px")
+    .attr("viewBox", `0 0 ${videoHeight} ${videoWidth}`)
+    .attr("preserveAspectRatio", "xMinYMin meet");
+
+  imageMaxWidth = windowWidth - imageSpace - realVideoWidth;
+
+  video = document.getElementById("video") as HTMLVideoElement;
+  video.width = videoWidth;
+  video.height = videoHeight;
+  d3.select("#video")
+    .style("width", windowHeight + "px")
+    .style("height", "auto");
+  // load posenet
+  net = await posenet.load(multiplier);
+
+  for (let i = 1; i <= imageCount; i += 1) {
     const container = d3.select("body")
-      .append("div").attr("id", "image" + i);
+      .append("div").attr("id", "image" + i)
+      .style("left", realVideoWidth + imageSpace + "px");
     const cImage = container.append("img");
-    const cSvg = container.append("svg");
+    const cSvg = container.append("svg")
+      .attr("preserveAspectRatio", "xMinYMin meet");
     images.push({
       container,
       image: cImage,
@@ -189,30 +229,8 @@ async function setup() {
     });
   }
 
-  const poseData = [];
-  poses.forEach((p, pi) => {
-    p.poses.forEach((pp) => {
-      poseData.push(pp);
-      poseKeys[poseData.length - 1] = pi;
-    });
-  });
-
-  vptree = VPTreeFactory.build(poseData, cosineDistanceMatching);
-
-  svg = d3.select("body").append("svg")
-    .attr("width", videoHeight)
-    .attr("height", videoWidth);
-
-  video = document.getElementById("video") as HTMLVideoElement;
-  video.width = videoWidth;
-  video.height = videoHeight;
-
-  // load posenet
-  net = await posenet.load(multiplier);
-
   canvas.width  = videoHeight;
   canvas.height = videoWidth;
-
   context.translate(canvas.width / 2, canvas.height / 2);
   context.rotate(-Math.PI / 2);
   context.scale(1, -1);
@@ -344,8 +362,48 @@ async function detectPose() {
       const nearestImage = vptree.search(cBody); // include n > number of similar samples
 
       // ToDo check if the image was already shown
-      const result = poses[poseKeys[nearestImage[0].i]];
-      d3.select("#image1 img").attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
+      const result = poses[poseKeys[nearestImage[0].i][0]];
+      images[0].image.attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
+
+      let outputHeight = windowHeight;
+      let outputWidth = imageMaxWidth;
+
+      if (outputWidth / result.width * result.height > outputHeight) {
+        outputWidth = outputHeight / result.height * result.width;
+      }
+
+      outputHeight = outputWidth / result.width * result.height;
+
+      images[0].container
+        .style("left", realVideoWidth + imageSpace + (imageMaxWidth - outputWidth) / 2 + "px")
+        .style("top", (windowHeight - outputHeight) / 2 + "px")
+        .style("width", outputWidth + "px")
+        .style("height", "auto");
+
+      const imageSize = 700;
+      const svgScaleFactor = (result.height > result.width) ? imageSize / result.height : imageSize / result.width;
+      images[0].svg.attr("viewBox", `0 0 ${result.width * svgScaleFactor}  ${result.height * svgScaleFactor}`);
+      images[0].svg.selectAll("*").remove();
+      console.log(result, poseKeys[nearestImage[0].i]);
+      const resultKeypoints = result.abs_poses[poseKeys[nearestImage[0].i][1]].keypoints;
+      images[0].svg.selectAll("circle").data(resultKeypoints).enter().append("circle")
+        .attr("cx", (d) => d.position.x)
+        .attr("cy", (d) => d.position.y)
+        .attr("r", (d) => 5)
+        .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+
+      result.pairs = [];
+      pairs.forEach((p) => {
+        const p1 = getPart(resultKeypoints, p[0]);
+        const p2 = getPart(resultKeypoints, p[1]);
+        result.pairs.push([p1.x, p1.y, p2.x, p2.y]);
+      });
+
+      images[0].svg.selectAll("line").data(result.pairs).enter().append("line")
+        .attr("x1", (d) => d[0])
+        .attr("y1", (d) => d[1])
+        .attr("x2", (d) => d[2])
+        .attr("y2", (d) => d[3]);
 
       svg.selectAll("*").remove();
 

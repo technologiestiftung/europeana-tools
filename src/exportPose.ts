@@ -10,7 +10,7 @@ const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
 const client = new Pool(config.db);
 client.connect();
 
-client.query("SELECT europeana_id, id, compress_pose, abs_pose, \
+client.query("SELECT europeana_id, id, download, image_width, image_height, compress_pose, abs_pose, \
 (SELECT m1.value FROM metadata AS m1 WHERE m1.europeana_id = europeana_id AND key = 'title' LIMIT 1) as title, \
 (SELECT m1.value FROM metadata AS m1 WHERE m1.europeana_id = europeana_id AND key = 'dataProvider' LIMIT 1) as museum, \
 (SELECT records.timestamp_created FROM records WHERE records.europeana_id = europeana_id LIMIT 1) as date \
@@ -22,10 +22,13 @@ FROM metadata WHERE yolo_has_person")
                 abs_poses: JSON.parse(row.abs_pose),
                 c: ri,
                 date: row.date,
+                download: row.download,
+                height: row.image_height,
                 id: row.id,
                 museum: row.museum,
                 poses: JSON.parse(row.compress_pose),
                 title: row.title,
+                width: row.image_width,
             }) + "\n");
         });
         wstream.write("]");
@@ -33,5 +36,4 @@ FROM metadata WHERE yolo_has_person")
             wstream.end();
             process.exit();
         }, 6000);
-        
     });
