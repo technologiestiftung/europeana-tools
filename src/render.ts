@@ -51,8 +51,8 @@ app.post("/print", async (req, res, next) => {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    const pose1 = JSON.parse(req.body.pose1 as string);
-    drawPose(pose1[0], 29 * 3, 125 * 3, scale1[1], ctx);
+    const pose1 = req.body.pose1;
+    drawPose(pose1, 29 * 3, 125 * 3, scale1[1], ctx);
 
     ctx.drawImage(images2, 29 * 3 + images1.width * scale1[0] + gap, 125 * 3, images2.width * scale2[0], images2.height * scale2[0]);
     ctx.rect(29 * 3 + images1.width * scale1[0] + gap, 125 * 3, images2.width * scale2[0], images2.height * scale2[0]);
@@ -60,8 +60,8 @@ app.post("/print", async (req, res, next) => {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    const pose2 = JSON.parse(req.body.pose2 as string);
-    drawPose(pose2[0], 29 * 3 + images1.width * scale1[0] + gap, 125 * 3, scale2[1], ctx);
+    const pose2 = req.body.pose2;
+    drawPose(pose2, 29 * 3 + images1.width * scale1[0] + gap, 125 * 3, scale2[1], ctx);
 
     ctx.fillStyle = "rgba(0,0,0,1)";
 
@@ -107,7 +107,7 @@ Erbe der Hauptstadt zugänglich und individuell erlebbar gemacht werden kann.",
     stream.pipe(out);
     out.on("finish", () => {
       // ADD PATH TO PRINT.PNG
-      exec("lp[r]?? -o media=A4 -o orientation-requested=4 export/print.png", (err, stdout, stderr) => {
+      exec('C:\\Users\\labrat\\Documents\\GitHub\\europeana-tools\\print.bat', {windowsHide:true}, (code, stdout, stderr) => {
         res.end(JSON.stringify({message: "Printing..."}));
       });
     });
@@ -191,7 +191,6 @@ const getPart = (arr, key) => {
 };
 
 const drawPose = (pose, x, y, scale, context) => {
-
   context.strokeStyle = "rgba(216,36,42,1)";
   context.fillStyle = "rgba(30,55,144,1)";
   context.lineWidth = 5;

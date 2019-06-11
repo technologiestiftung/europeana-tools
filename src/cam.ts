@@ -262,17 +262,19 @@ async function setup() {
   document.addEventListener("keyup", keyUp);
 }
 
+let keyState = false;
+
 function keyDown(e) {
-  if (e.key === "4") {
+  if (e.key === "4" && !keyState) {
     keyStart = Date.now();
-    console.log("key down");
+    keyState = true;
   }
 }
 
 function keyUp(e) {
   if (e.key === "4") {
     const duration = Date.now() - keyStart;
-    console.log("key up", duration);
+    console.log(duration);
     if (state === 1) {
       state = 2;
       console.log("state 2");
@@ -281,7 +283,7 @@ function keyUp(e) {
       console.log("print", "state 1");
 
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://localhost:5656/print", true);
+      xhr.open("POST", "http://localhost:5656/print", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.onreadystatechange = () => {
           if (xhr.readyState === 4 && xhr.status === 200) {
@@ -309,6 +311,7 @@ function keyUp(e) {
       state = 1;
     }
   }
+  keyState = false;
 }
 
 const getPart = (arr, key) => {
@@ -402,7 +405,7 @@ async function detectPose() {
 
         const nowTime = Date.now();
 
-        if (nowTime - poseTime > 3000) {
+        if (nowTime - poseTime > 2000) {
           poseTime = Date.now();
 
           const nearestImage = vptree.search(cBody); // include n > number of similar samples

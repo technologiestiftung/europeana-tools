@@ -50,15 +50,15 @@ app.post("/print", (req, res, next) => __awaiter(this, void 0, void 0, function*
     ctx.strokeStyle = "rgba(0,0,0,1)";
     ctx.lineWidth = 2;
     ctx.stroke();
-    const pose1 = JSON.parse(req.body.pose1);
-    drawPose(pose1[0], 29 * 3, 125 * 3, scale1[1], ctx);
+    const pose1 = req.body.pose1;
+    drawPose(pose1, 29 * 3, 125 * 3, scale1[1], ctx);
     ctx.drawImage(images2, 29 * 3 + images1.width * scale1[0] + gap, 125 * 3, images2.width * scale2[0], images2.height * scale2[0]);
     ctx.rect(29 * 3 + images1.width * scale1[0] + gap, 125 * 3, images2.width * scale2[0], images2.height * scale2[0]);
     ctx.strokeStyle = "rgba(0,0,0,1)";
     ctx.lineWidth = 2;
     ctx.stroke();
-    const pose2 = JSON.parse(req.body.pose2);
-    drawPose(pose2[0], 29 * 3 + images1.width * scale1[0] + gap, 125 * 3, scale2[1], ctx);
+    const pose2 = req.body.pose2;
+    drawPose(pose2, 29 * 3 + images1.width * scale1[0] + gap, 125 * 3, scale2[1], ctx);
     ctx.fillStyle = "rgba(0,0,0,1)";
     // Funding text
     ctx.font = "24px \"ClanCompPro-Book\"";
@@ -91,7 +91,7 @@ Erbe der Hauptstadt zugänglich und individuell erlebbar gemacht werden kann.", 
     stream.pipe(out);
     out.on("finish", () => {
         // ADD PATH TO PRINT.PNG
-        child_process_1.exec("lp[r]?? -o media=A4 -o orientation-requested=4 export/print.png", (err, stdout, stderr) => {
+        child_process_1.exec('C:\\Users\\labrat\\Documents\\GitHub\\europeana-tools\\print.bat', { windowsHide: true }, (code, stdout, stderr) => {
             res.end(JSON.stringify({ message: "Printing..." }));
         });
     });
