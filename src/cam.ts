@@ -187,6 +187,9 @@ let currentPoseDate;
 let currentVideo;
 let currentVideoPose;
 
+let titleContainer;
+let museumContainer;
+
 async function setup() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error("Browser API navigator.mediaDevices.getUserMedia not available");
@@ -260,6 +263,12 @@ async function setup() {
 
   document.addEventListener("keydown", keyDown);
   document.addEventListener("keyup", keyUp);
+
+  const infoContainer = d3.select("body").append("div")
+    .attr("id", "infoContainer");
+
+  titleContainer = infoContainer.append("h1");
+  museumContainer = infoContainer.append("h2");
 }
 
 let keyState = false;
@@ -413,6 +422,9 @@ async function detectPose() {
           // ToDo check if the image was already shown
           const result = poses[poseKeys[nearestImage[0].i][0]];
           images[0].image.attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
+
+          titleContainer.html(result.title);
+          museumContainer.html(result.museum);
 
           let outputHeight = windowHeight;
           let outputWidth = imageMaxWidth;
