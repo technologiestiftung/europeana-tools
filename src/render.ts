@@ -40,7 +40,7 @@ app.post("/print", async (req, res, next) => {
     const images1 = await loadImage("temp.png");
     const images2 = await loadImage("dst/europeana_downloads_complete/" + req.body.id + ".jpg");
 
-    const scale1 = scaleFactor(images1, 285 * 3, 371 * 3, 640, 360);
+    const scale1 = scaleFactor(images1, 285 * 3, 371 * 3, 360, 640);
     const scale2 = scaleFactor(images2, 285 * 3, 371 * 3, 700, 700);
 
     const gap = (1830 - images1.width * scale1[0] - images2.width * scale2[0]) / 2;
@@ -107,7 +107,7 @@ Erbe der Hauptstadt zugänglich und individuell erlebbar gemacht werden kann.",
     stream.pipe(out);
     out.on("finish", () => {
       // ADD PATH TO PRINT.PNG
-      exec('C:\\Users\\labrat\\Documents\\GitHub\\europeana-tools\\print.bat', {windowsHide:true}, (code, stdout, stderr) => {
+      exec("C:\\Users\\labrat\\Documents\\GitHub\\europeana-tools\\print.bat", {windowsHide:true}, (code, stdout, stderr) => {
         res.end(JSON.stringify({message: "Printing..."}));
       });
     });

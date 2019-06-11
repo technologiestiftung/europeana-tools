@@ -440,14 +440,6 @@ async function detectPose() {
             .attr("r", (d) => 5)
             .style("fill", (d) => `rgba(255,0,0,${d.score})`);
 
-          currentPoseId = result.id;
-          currentPoseTitle = result.title;
-          currentPoseMuseum = result.museum;
-          currentPoseDate = result.date;
-          currentPose = result.abs_poses[poseKeys[nearestImage[0].i][1]];
-          currentVideo = imageElement.src;
-          currentVideoPose = highestPose;
-
           result.pairs = [];
           pairs.forEach((p) => {
             const p1 = getPart(resultKeypoints, p[0]);
@@ -460,6 +452,14 @@ async function detectPose() {
             .attr("y1", (d) => d[1])
             .attr("x2", (d) => d[2])
             .attr("y2", (d) => d[3]);
+
+          currentPoseId = result.id;
+          currentPoseTitle = result.title;
+          currentPoseMuseum = result.museum;
+          currentPoseDate = result.date;
+          currentPose = result.abs_poses[poseKeys[nearestImage[0].i][1]];
+          currentVideo = imageElement.src;
+          currentVideoPose = highestPose;
 
         }
 
@@ -489,9 +489,30 @@ async function detectPose() {
 
     context.drawImage(video, -canvas.height / 2, -canvas.width / 2);
     imageElement.src = canvas.toDataURL("image/png");
+
+    d3.select("#video").style("display", "block");
+
   } else {
+
     d3.select("#image").attr("src", currentVideo);
+    d3.select("#video").style("display", "none");
+
     // Draw poses
+    svg.selectAll("*").remove();
+
+    const groups = svg.selectAll("g").data([currentVideoPose]).enter().append("g");
+
+    groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
+      .attr("cx", (d) => d.position.x)
+      .attr("cy", (d) => d.position.y)
+      .attr("r", (d) => 5)
+      .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+
+    groups.selectAll("line").data((d) => d.pairs).enter().append("line")
+      .attr("x1", (d) => d[0])
+      .attr("y1", (d) => d[1])
+      .attr("x2", (d) => d[2])
+      .attr("y2", (d) => d[3]);
   }
 }
 

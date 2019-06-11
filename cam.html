@@ -22,6 +22,15 @@
         top:35px;
     }
 
+    image{
+        position: absolute;
+        top:35px;
+        left:0px;
+        width:360px;
+        height:auto;
+        z-index: -99;
+    }
+
     canvas {
         display:none;
     }
@@ -62,6 +71,7 @@
 <body>
     <video id="video" playsinline></video>
     <canvas id="canvas"></canvas>
+    <img id="image" />
     
     <div id="logo-kulturbdigital"></div>
     <div id="logo-senkult"></div>
