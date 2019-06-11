@@ -286,6 +286,9 @@ function keyUp(e) {
     console.log(duration);
     if (state === 1) {
       state = 2;
+
+      d3.select("#message span").html("Knopf kurz um zurückzukehren.<br />Lange drücken um Ergebnis zu drucken.");
+
       console.log("state 2");
     } else if (duration > 1000) {
       // send print job
@@ -315,9 +318,11 @@ function keyUp(e) {
       }));
 
       state = 1;
+      d3.select("#message span").html("Knopf drücken um Suche zu pausieren.");
     } else {
       console.log("state 1");
       state = 1;
+      d3.select("#message span").html("Knopf drücken um Suche zu pausieren.");
     }
   }
   keyState = false;

@@ -99,16 +99,63 @@
         color:black;
         padding:5px 10px;
     }
+
+    #logo-kulturbdigital{
+        position: absolute;
+        top:20px;
+        left:20px;
+        z-index:99;
+    }
+
+    #logo-senkult{
+        position: absolute;
+        bottom:20px;
+        left:20px;
+        z-index:99;
+    }
+
+    #message{
+        position: absolute;
+        top:0;
+        right:0;
+        background-color:rgba(255,255,255,0.8);
+        color:black;
+        font-weight:bold;
+        font-size:24px;
+        font-family: "ClanCompPro-Book";
+    }
+
+    #message *{
+        text-align: right;
+        float:right;
+    }
+
+    #message img{
+        margin:15px;
+    }
 </style>
 </head>
 <body>
+    <div id="background">
+        Resetting Memory. Please wait.
+    </div>
+
     <video id="video" playsinline></video>
     <canvas id="canvas"></canvas>
     <img id="image" />
     
-    <div id="logo-kulturbdigital"></div>
-    <div id="logo-senkult"></div>
-    <div id="message"></div>
+    <div id="logo-kulturbdigital">
+        <img src="assets/images/kulturBdigital_logo-light.png" />
+    </div>
+    <div id="logo-senkult">
+        <img src="assets/images/Sen_KuEu_logo@2x.png" />
+    </div>
+    <div id="message">
+        <table><tr><td>
+        <span>Knopf drücken um Suche zu pausieren.</span>
+        <img src="assets/images/button_icon.png" />
+        </td></tr></table>
+    </div>
     <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script> 
     <script src="https://d3js.org/d3.v5.min.js"></script> -->
