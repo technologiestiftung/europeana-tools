@@ -42,7 +42,7 @@ app.post("/print", (req, res, next) => __awaiter(this, void 0, void 0, function*
     ctx.drawImage(images[0], 0, 0, 2526, 1785);
     const images1 = yield canvas_1.loadImage("temp.png");
     const images2 = yield canvas_1.loadImage("dst/europeana_downloads_complete/" + req.body.id + ".jpg");
-    const scale1 = scaleFactor(images1, 285 * 3, 371 * 3, 640, 360);
+    const scale1 = scaleFactor(images1, 285 * 3, 371 * 3, 360, 640);
     const scale2 = scaleFactor(images2, 285 * 3, 371 * 3, 700, 700);
     const gap = (1830 - images1.width * scale1[0] - images2.width * scale2[0]) / 2;
     ctx.drawImage(images1, 29 * 3, 125 * 3, images1.width * scale1[0], images1.height * scale1[0]);
@@ -64,17 +64,18 @@ app.post("/print", (req, res, next) => __awaiter(this, void 0, void 0, function*
     ctx.font = "24px \"ClanCompPro-Book\"";
     wrapText(ctx, "Dieses Projekt der Technologiestiftung Berlin wird gefördert \
 von der Senatsverwaltung für Kultur und Europa.", 259 * 3, 550 * 3, 240 * 3, 35);
-    let lastY = wrapText(ctx, "Titel", 639 * 3, 131 * 3, 145 * 3, 35);
+    const colWidth = 165;
+    let lastY = wrapText(ctx, "Titel", 639 * 3, 131 * 3, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    lastY = wrapText(ctx, req.body.title, 639 * 3, lastY, 145 * 3, 35);
+    lastY = wrapText(ctx, req.body.title, 639 * 3, lastY, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Book\"";
-    lastY = wrapText(ctx, "Museum", 639 * 3, lastY + 35, 145 * 3, 35);
+    lastY = wrapText(ctx, "Museum", 639 * 3, lastY + 35, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    lastY = wrapText(ctx, req.body.museum, 639 * 3, lastY, 145 * 3, 35);
+    lastY = wrapText(ctx, req.body.museum, 639 * 3, lastY, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Book\"";
-    lastY = wrapText(ctx, "Quelle:", 639 * 3, lastY + 35, 145 * 3, 35);
+    lastY = wrapText(ctx, "Quelle:", 639 * 3, lastY + 35, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    lastY = wrapText(ctx, "Europeana, " + req.body.date, 639 * 3, lastY, 145 * 3, 35);
+    lastY = wrapText(ctx, "Europeana, " + req.body.date, 639 * 3, lastY, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Book\"";
     lastY = wrapText(ctx, "Die Europeana ist eine offene Datenbank, entwickelt um \
 das kulturelle Erbe Europas verfügbar zu machen. Sie umfasst mittlerweile über \
@@ -83,15 +84,15 @@ Intelligenz, haben wir die Bilder von Berliner Kulturinstitutionen in der Europe
 analysiert und eine interaktive Anwendung entwickelt, welche es Besucher*innen \
 erlaubt, Bilder basierend auf der eigenen, zuvor fotografierten Pose, zu finden. \
 Das hier gezeigte Experiment ist ein Beispiel für neue Ansätze, wie das kulturelle \
-Erbe der Hauptstadt zugänglich und individuell erlebbar gemacht werden kann.", 639 * 3, lastY + 70, 145 * 3, 35);
-    lastY = wrapText(ctx, "Erfahren Sie mehr über das Projekt kulturBdigital unter:", 639 * 3, lastY + 70, 145 * 3, 35);
+Erbe der Hauptstadt zugänglich und individuell erlebbar gemacht werden kann.", 639 * 3, lastY + 70, colWidth * 3, 35);
+    lastY = wrapText(ctx, "Erfahren Sie mehr über das Projekt kulturBdigital unter:", 639 * 3, lastY + 70, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    wrapText(ctx, "https://kultur-b-digital.de", 639 * 3, lastY, 145 * 3, 35);
+    wrapText(ctx, "https://kultur-b-digital.de", 639 * 3, lastY, colWidth * 3, 35);
     const stream = canvas.createPNGStream();
     stream.pipe(out);
     out.on("finish", () => {
         // ADD PATH TO PRINT.PNG
-        child_process_1.exec('C:\\Users\\labrat\\Documents\\GitHub\\europeana-tools\\print.bat', { windowsHide: true }, (code, stdout, stderr) => {
+        child_process_1.exec("C:\\Users\\labrat\\Documents\\GitHub\\europeana-tools\\print.bat", { windowsHide: true }, (code, stdout, stderr) => {
             res.end(JSON.stringify({ message: "Printing..." }));
         });
     });

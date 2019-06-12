@@ -70,19 +70,21 @@ app.post("/print", async (req, res, next) => {
     wrapText(ctx, "Dieses Projekt der Technologiestiftung Berlin wird gefördert \
 von der Senatsverwaltung für Kultur und Europa.", 259 * 3, 550 * 3, 240 * 3, 35);
 
-    let lastY = wrapText(ctx, "Titel", 639 * 3, 131 * 3, 145 * 3, 35);
+    const colWidth = 165;
+
+    let lastY = wrapText(ctx, "Titel", 639 * 3, 131 * 3, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    lastY = wrapText(ctx, req.body.title, 639 * 3, lastY, 145 * 3, 35);
+    lastY = wrapText(ctx, req.body.title, 639 * 3, lastY, colWidth * 3, 35);
 
     ctx.font = "24px \"ClanCompPro-Book\"";
-    lastY = wrapText(ctx, "Museum", 639 * 3, lastY + 35, 145 * 3, 35);
+    lastY = wrapText(ctx, "Museum", 639 * 3, lastY + 35, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    lastY = wrapText(ctx, req.body.museum, 639 * 3, lastY, 145 * 3, 35);
+    lastY = wrapText(ctx, req.body.museum, 639 * 3, lastY, colWidth * 3, 35);
 
     ctx.font = "24px \"ClanCompPro-Book\"";
-    lastY = wrapText(ctx, "Quelle:", 639 * 3, lastY + 35, 145 * 3, 35);
+    lastY = wrapText(ctx, "Quelle:", 639 * 3, lastY + 35, colWidth * 3, 35);
     ctx.font = "24px \"ClanCompPro-Bold\"";
-    lastY = wrapText(ctx, "Europeana, " + req.body.date, 639 * 3, lastY, 145 * 3, 35);
+    lastY = wrapText(ctx, "Europeana, " + req.body.date, 639 * 3, lastY, colWidth * 3, 35);
 
     ctx.font = "24px \"ClanCompPro-Book\"";
     lastY = wrapText(ctx, "Die Europeana ist eine offene Datenbank, entwickelt um \
@@ -93,15 +95,15 @@ analysiert und eine interaktive Anwendung entwickelt, welche es Besucher*innen \
 erlaubt, Bilder basierend auf der eigenen, zuvor fotografierten Pose, zu finden. \
 Das hier gezeigte Experiment ist ein Beispiel für neue Ansätze, wie das kulturelle \
 Erbe der Hauptstadt zugänglich und individuell erlebbar gemacht werden kann.",
-639 * 3, lastY + 70, 145 * 3, 35);
+639 * 3, lastY + 70, colWidth * 3, 35);
 
     lastY = wrapText(ctx, "Erfahren Sie mehr über das Projekt kulturBdigital unter:",
-      639 * 3, lastY + 70, 145 * 3, 35);
+      639 * 3, lastY + 70, colWidth * 3, 35);
 
     ctx.font = "24px \"ClanCompPro-Bold\"";
 
     wrapText(ctx, "https://kultur-b-digital.de",
-      639 * 3, lastY, 145 * 3, 35);
+      639 * 3, lastY, colWidth * 3, 35);
 
     const stream = canvas.createPNGStream();
     stream.pipe(out);

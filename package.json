@@ -62,7 +62,7 @@
     "watch": [
       "src"
     ],
-    "exec": "npm run typescript",
+    "exec": "npm run typescript-web",
     "ext": "ts"
   },
   "devDependencies": {

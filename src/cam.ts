@@ -160,6 +160,10 @@ let vptree;
 const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
 const context = canvas.getContext("2d");
 
+const earlyRefresh = 15 * 60 * 1000;
+const lateRefresh = 20 * 60 * 1000;
+let refreshTime = Date.now();
+
 const videoWidth = 640; // 1280
 const videoHeight = 360; // 720
 
@@ -217,14 +221,17 @@ async function setup() {
 
   imageMaxWidth = windowWidth - imageSpace - realVideoWidth;
 
+    // load posenet
+  net = await posenet.load(multiplier);
+
   video = document.getElementById("video") as HTMLVideoElement;
   video.width = videoWidth;
   video.height = videoHeight;
   d3.select("#video")
     .style("width", windowHeight + "px")
     .style("height", "auto");
-  // load posenet
-  net = await posenet.load(multiplier);
+  
+  d3.select("#background").style("display", "none");
 
   for (let i = 1; i <= imageCount; i += 1) {
     const container = d3.select("body")
@@ -317,12 +324,20 @@ function keyUp(e) {
         title: currentPoseTitle,
       }));
 
+      setTimeout(() => {
+        if (Date.now() - refreshTime > earlyRefresh) {
+          location.reload();
+        }
+      }, 1000);
+
       state = 1;
       d3.select("#message span").html("Knopf drücken um Suche zu pausieren.");
+      window.requestAnimationFrame(detectPose);
     } else {
       console.log("state 1");
       state = 1;
       d3.select("#message span").html("Knopf drücken um Suche zu pausieren.");
+      window.requestAnimationFrame(detectPose);
     }
   }
   keyState = false;
@@ -508,10 +523,12 @@ async function detectPose() {
     imageElement.src = canvas.toDataURL("image/png");
 
     d3.select("#video").style("display", "block");
+    d3.select("#image").style("display","none");
 
   } else {
 
-    d3.select("#image").attr("src", currentVideo);
+    d3.select("#image").attr("src", currentVideo)
+    .style("display","block");
     d3.select("#video").style("display", "none");
 
     // Draw poses
@@ -530,6 +547,9 @@ async function detectPose() {
       .attr("y1", (d) => d[1])
       .attr("x2", (d) => d[2])
       .attr("y2", (d) => d[3]);
+  }
+  if (Date.now() - refreshTime > lateRefresh) {
+    location.reload();
   }
 }
 
