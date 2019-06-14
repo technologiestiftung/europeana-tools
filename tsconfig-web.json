@@ -18,7 +18,7 @@
           "./node_modules/@types"
       ]
   },
-  "include": ["src/cam.ts", "src/compute-cosine-similarity.ts"],
+  "include": ["src/backgroundprint.ts", "src/cam.ts", "src/compute-cosine-similarity.ts"],
   "exclude": [
     "node_modules"
 ]
