@@ -2,10 +2,221 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
+        <style>
+        
+        body, html{
+            margin:0;
+            padding:0;
+            border:none;
+            background:black;
+            overflow:hidden;
+        }
+
+        #image1 img, #image2 img, #image3 img{
+            width:100%;
+            height:auto;
+        }
+
+        #image1 svg, #image2 svg, #image3 svg{
+            width:100%;
+            height:100%;
+        }
+        
+        </style>
     <head>
     <body>
-        <div id="container"></div>
+        <div id="image1">
+            
+        </div>
         <script src="https://d3js.org/d3.v5.min.js"></script>
-        <script src="./dst/testPose.js"></script>
+        <script>
+
+const img = d3.select("#image1").append("img");
+const svg = d3.select("#image1").append("svg")
+
+const getPart = (arr, key) => {
+  let r = {x: 0, y: 0};
+  arr.forEach( (a) => {
+      if (a.part === key) {
+          r = a.position;
+      }
+  });
+  return r;
+};
+
+const pairs = [
+  ["nose", "leftEye"],
+  ["nose", "rightEye"],
+  ["leftEar", "leftEye"],
+  ["rightEar", "rightEye"],
+
+  ["leftShoulder", "rightShoulder"],
+  ["leftShoulder", "leftElbow"],
+  ["rightElbow", "rightShoulder"],
+  ["leftWrist", "leftElbow"],
+  ["rightElbow", "rightWrist"],
+
+  ["leftShoulder", "leftHip"],
+  ["rightShoulder", "rightHip"],
+
+  ["leftHip", "rightHip"],
+  ["leftHip", "leftKnee"],
+  ["rightKnee", "rightHip"],
+  ["leftAnkle", "leftKnee"],
+  ["rightKnee", "rightAnkle"],
+];
+        
+            let poses;
+            let inter;
+
+            d3.json("poses.json")
+                .then((loadPoses) => {
+                    poses = loadPoses;
+                    inter = setInterval(showPose, 5000);
+                })
+                .catch((err) => {
+
+                });
+            
+            const showPose = () => {
+                const poseId = Math.floor(Math.random()*poses.length);
+                img.attr("src", "http://localhost:8000/dst/europeana_downloads_complete")
+                const imageElement = new Image();
+    imageElement.crossOrigin = "Anonymous";
+    imageElement.onload = async () => {
+
+      // estimateSinglePose
+      const resp = await net.estimateMultiplePoses(imageElement, imageScaleFactor, flipHorizontal, outputStride);
+
+      let highestScore = -Number.MAX_VALUE;
+      let highestPose;
+
+      // remove poses with low probability
+      for (let i = resp.length - 1; i >= 0; i--) {
+          if (resp[i].score < 0.1) {
+              resp.splice(i, 1);
+          } else {
+            if (resp[i].score > highestScore) {
+              highestScore = resp[i].score;
+              highestPose = resp[i];
+            }
+            resp[i].pairs = [];
+            pairs.forEach((p) => {
+              const p1 = getPart(resp[i].keypoints, p[0]);
+              const p2 = getPart(resp[i].keypoints, p[1]);
+              resp[i].pairs.push([p1.x, p1.y, p2.x, p2.y]);
+            });
+          }
+      }
+
+      if (resp.length > 0 && highestScore > 0.5) {
+
+        const cBody = [];
+
+        let minX = Number.MAX_VALUE;
+        let minY = Number.MAX_VALUE;
+        let maxX = -Number.MAX_VALUE;
+        let maxY = -Number.MAX_VALUE;
+        highestPose.keypoints.forEach((point) => {
+          if (point.position.x > maxX) { maxX = point.position.x; }
+          if (point.position.y > maxY) { maxY = point.position.y; }
+          if (point.position.x < minX) { minX = point.position.x; }
+          if (point.position.y < minY) { minY = point.position.y; }
+        });
+
+        const width = maxX - minX;
+        const height = maxY - minY;
+
+        highestPose.keypoints.forEach((point) => {
+          cBody.push((point.position.x - minX) / width);
+          cBody.push((point.position.y - minY) / height);
+        });
+
+        const nowTime = Date.now();
+
+        if (nowTime - poseTime > 2000) {
+          poseTime = Date.now();
+
+          const nearestImage = vptree.search(cBody); // include n > number of similar samples
+
+          // ToDo check if the image was already shown
+          const result = poses[poseKeys[nearestImage[0].i][0]];
+          images[0].image.attr("src", "http://localhost:8000/dst/europeana_downloads_complete/" + result.id + ".jpg");
+
+          titleContainer.html(result.title);
+          museumContainer.html(result.museum);
+
+          let outputHeight = windowHeight;
+          let outputWidth = imageMaxWidth;
+
+          if (outputWidth / result.width * result.height > outputHeight) {
+            outputWidth = outputHeight / result.height * result.width;
+          }
+
+          outputHeight = outputWidth / result.width * result.height;
+
+          images[0].container
+            .style("left", realVideoWidth + imageSpace + (imageMaxWidth - outputWidth) / 2 + "px")
+            .style("top", (windowHeight - outputHeight) / 2 + "px")
+            .style("width", outputWidth + "px")
+            .style("height", "auto");
+
+          const imageSize = 700;
+          const svgScaleFactor = (result.height > result.width) ? imageSize / result.height : imageSize / result.width;
+          images[0].svg.attr("viewBox", `0 0 ${result.width * svgScaleFactor}  ${result.height * svgScaleFactor}`);
+          images[0].svg.selectAll("*").remove();
+          const resultKeypoints = result.abs_poses[poseKeys[nearestImage[0].i][1]].keypoints;
+          images[0].svg.selectAll("circle").data(resultKeypoints).enter().append("circle")
+            .attr("cx", (d) => d.position.x)
+            .attr("cy", (d) => d.position.y)
+            .attr("r", (d) => 5)
+            .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+
+          result.pairs = [];
+          pairs.forEach((p) => {
+            const p1 = getPart(resultKeypoints, p[0]);
+            const p2 = getPart(resultKeypoints, p[1]);
+            result.pairs.push([p1.x, p1.y, p2.x, p2.y]);
+          });
+
+          images[0].svg.selectAll("line").data(result.pairs).enter().append("line")
+            .attr("x1", (d) => d[0])
+            .attr("y1", (d) => d[1])
+            .attr("x2", (d) => d[2])
+            .attr("y2", (d) => d[3]);
+
+          currentPoseId = result.id;
+          currentPoseTitle = result.title;
+          currentPoseMuseum = result.museum;
+          currentPoseDate = result.date;
+          currentPose = result.abs_poses[poseKeys[nearestImage[0].i][1]];
+          currentVideo = imageElement.src;
+          currentVideoPose = highestPose;
+
+        }
+
+        svg.selectAll("*").remove();
+
+        // [highestPose] > resp
+
+        const groups = svg.selectAll("g").data([highestPose]).enter().append("g");
+        groups.selectAll("circle").data((d) => d.keypoints).enter().append("circle")
+          .attr("cx", (d) => d.position.x)
+          .attr("cy", (d) => d.position.y)
+          .attr("r", (d) => 5)
+          .style("fill", (d) => `rgba(255,0,0,${d.score})`);
+
+        groups.selectAll("line").data((d) => d.pairs).enter().append("line")
+          .attr("x1", (d) => d[0])
+          .attr("y1", (d) => d[1])
+          .attr("x2", (d) => d[2])
+          .attr("y2", (d) => d[3]);
+      } else {
+        svg.selectAll("*").remove();
+      }
+
+            };
+        
+        </script>
     </body>
 </html>
